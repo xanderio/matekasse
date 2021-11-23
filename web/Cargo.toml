@@ -1,0 +1,14 @@
+[package]
+name = "web"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+yew = "0.18"
+ybc = "0.2"
+yew-router = "0.15.0"
+gloo-events = "0.1"
+console_error_panic_hook = "0.1.7"
+wasm-logger = "0.2.0"
+log = "0.4"
