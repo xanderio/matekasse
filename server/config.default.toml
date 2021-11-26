@@ -1,0 +1,7 @@
+[http]
+# Interface and port on which this server will listen.
+listen = "0.0.0.0:3000"
+
+[storage]
+# root folder of data store
+data_root = "./data"
