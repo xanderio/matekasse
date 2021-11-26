@@ -1,25 +1,27 @@
+use anyhow::Error;
 use gloo_events::EventListener;
 use ybc::TileCtx::{Ancestor, Child, Parent};
 use ybc::TileSize::Four;
+use yew::format::{Json, Nothing};
 use yew::prelude::*;
+use yew::services::fetch::{FetchTask, Request, Response};
+use yew::services::FetchService;
 use yew::web_sys::HtmlElement;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Product {
-    name: String,
-    price: f32,
-}
+use common::Product;
 
 #[derive(Debug)]
 pub struct Checkout {
     link: ComponentLink<Self>,
     products: Vec<Product>,
     selected: Option<Product>,
+    fetch_task: Option<FetchTask>,
 }
 
 #[derive(Debug)]
 pub enum CheckoutMsg {
     Select(Product),
+    Response(Result<Vec<Product>, Error>),
 }
 
 impl Component for Checkout {
@@ -28,41 +30,42 @@ impl Component for Checkout {
     type Properties = ();
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let products = vec![
-            Product {
-                name: "Mio Mio Mate".to_string(),
-                price: 1.50,
-            },
-            Product {
-                name: "Flora Mate".to_string(),
-                price: 2.00,
-            },
-            Product {
-                name: "Mate Mate".to_string(),
-                price: 1.50,
-            },
-            Product {
-                name: "Kaffe".to_string(),
-                price: 0.50,
-            },
-            Product {
-                name: "Spezi".to_string(),
-                price: 1.50,
-            },
-        ];
+        let request = Request::get("/api/v1/products")
+            .body(Nothing)
+            .expect("Could build request");
+
+        let task = FetchService::fetch(
+            request,
+            link.callback(|resp: Response<Json<Result<Vec<Product>, Error>>>| {
+                let Json(data) = resp.into_body();
+                CheckoutMsg::Response(data)
+            }),
+        )
+        .expect("unable to build fetch task");
+
         Self {
             link,
-            products,
+            products: Vec::new(),
             selected: None,
+            fetch_task: Some(task),
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
-        log::info!("{:?}", msg);
         match msg {
-            CheckoutMsg::Select(product) => self.selected = Some(product),
-        };
-        false
+            CheckoutMsg::Select(product) => {
+                self.selected = Some(product);
+                false
+            }
+            CheckoutMsg::Response(Ok(products)) => {
+                self.products = products;
+                true
+            }
+            CheckoutMsg::Response(Err(e)) => {
+                log::error!("{}", e);
+                false
+            }
+        }
     }
 
     fn change(&mut self, _props: Self::Properties) -> ShouldRender {
@@ -128,7 +131,7 @@ impl Component for ProductCard {
         html! {
             <ybc::Tile ref={self.node.clone()} ctx=Child classes=classes!("box", "is-clickable")>
                  <ybc::Title>{self.props.item.name.clone()}</ybc::Title>
-                 <ybc::Subtitle>{format!("{0:.2}€", self.props.item.price)}</ybc::Subtitle>
+                 <ybc::Subtitle>{self.format_price()}</ybc::Subtitle>
             </ybc::Tile>
         }
     }
@@ -143,5 +146,11 @@ impl Component for ProductCard {
             let listener = EventListener::new(&element, "click", move |e| cb.emit(e.clone()));
             self.onclick_listener = Some(listener);
         }
+    }
+}
+
+impl ProductCard {
+    fn format_price(&self) -> String {
+        format!("{0:.2}€", self.props.item.price as f64 / 100.0)
     }
 }
