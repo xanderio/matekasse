@@ -1,7 +1,7 @@
 use warp::Filter;
 
 pub fn products() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path("v1").and(
+    warp::path("v3").and(
         list_products_v1()
             .or(create_product_v1())
             .or(delete_project_v1())

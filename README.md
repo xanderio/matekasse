@@ -1,8 +1,8 @@
 # Matekasse
 
 This project aims to stay compatiable with
-[Mete](https://github.com/chaosdorf/mete) via the  [Space-Market
-API](https://space-market.github.io/API/swagger-ui).
+[Mete](https://github.com/chaosdorf/mete) via the [Space-Market
+API 3.0.0](https://space-market.github.io/API/swagger-ui).
 
 The project name is not final. :)
 

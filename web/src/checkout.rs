@@ -30,7 +30,7 @@ impl Component for Checkout {
     type Properties = ();
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let request = Request::get("/api/v1/products")
+        let request = Request::get("/api/v3/products")
             .body(Nothing)
             .expect("Could build request");
 

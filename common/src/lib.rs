@@ -38,14 +38,14 @@ impl Default for Product {
             alcohol: Default::default(),
             energy: Default::default(),
             sugar: Default::default(),
-            price: Default::default(),
-            active: Default::default(),
+            price: 150,
+            active: true,
             image: Default::default(),
         }
     }
 }
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ServerInfo {
     pub version: String,
 
@@ -61,6 +61,20 @@ pub struct ServerInfo {
     pub energy: String,
     #[serde(rename = "defaults")]
     pub default_product: DefaultProduct,
+}
+
+impl Default for ServerInfo {
+    fn default() -> Self {
+        Self {
+            version: "3.0.0".to_string(),
+            global_credit_limit: Default::default(),
+            currency: "€".to_string(),
+            currency_before: false,
+            decimal_seperator: Some(",".to_string()),
+            energy: "kcal".to_string(),
+            default_product: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
