@@ -10,10 +10,16 @@ tokio = { version = "1", features = ["full"] }
 warp = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
-sled = "0.34"
 toml = "0.5"
+eyre = "0.6"
+sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "sqlite", "migrate"] }
 
 common = { path = "../common" }
+
+[dependencies.sea-orm]
+version = "0.4"
+default-features = false
+features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-chrono"] 
 
 [dev-dependencies]
 pretty_assertions = "1"

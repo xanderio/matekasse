@@ -1,8 +1,12 @@
 use warp::Filter;
 
-pub fn products() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+use crate::storage::Db;
+
+pub fn products(
+    db: Db,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path("v3").and(
-        list_products_v1()
+        list_products_v1(db)
             .or(create_product_v1())
             .or(delete_project_v1())
             .or(list_product_v1())
@@ -12,11 +16,12 @@ pub fn products() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Re
 
 /// returns all products
 /// API: https://space-market.github.io/API/swagger-ui/#!/products/get_products
-fn list_products_v1() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone
-{
+fn list_products_v1(
+    db: Db,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path("products")
         .and(warp::get())
-        .and_then(handler::list_products_v1)
+        .and_then(move || handler::list_products_v1(db.clone()))
 }
 
 fn create_product_v1() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone
@@ -51,50 +56,21 @@ mod handler {
     use std::convert::Infallible;
 
     use common::Product;
+    use sea_orm::entity::*;
 
-    fn products() -> Vec<Product> {
-        vec![
-            Product {
-                id: 1,
-                name: "Flora Mate".to_string(),
-                price: 200,
-                active: true,
-                ..Default::default()
-            },
-            Product {
-                id: 2,
-                name: "Mio Mio Mate".to_string(),
-                price: 150,
-                active: true,
-                ..Default::default()
-            },
-            Product {
-                id: 3,
-                name: "Mate Mate".to_string(),
-                price: 150,
-                active: true,
-                ..Default::default()
-            },
-            Product {
-                id: 4,
-                name: "Kaffe".to_string(),
-                price: 50,
-                active: true,
-                ..Default::default()
-            },
-            Product {
-                id: 5,
-                name: "Spezi".to_string(),
-                price: 150,
-                active: true,
-                ..Default::default()
-            },
-        ]
-    }
+    use crate::{entity::product::Entity as ProductModel, storage::Db};
 
     /// returns all products
-    pub(super) async fn list_products_v1() -> Result<impl warp::Reply, Infallible> {
-        Ok(warp::reply::json(&products()))
+    pub(super) async fn list_products_v1(db: Db) -> Result<impl warp::Reply, Infallible> {
+        let products = ProductModel::find()
+            .all(&db.orm)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<Product>>();
+
+        Ok(warp::reply::json(&products))
     }
 
     pub(super) async fn create_product_v1() -> Result<impl warp::Reply, Infallible> {

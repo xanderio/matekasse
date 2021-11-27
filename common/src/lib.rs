@@ -19,8 +19,8 @@ pub struct Product {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sugar: Option<i32>,
     pub price: i32,
-    pub create_at: DateTime<Utc>,
-    pub update_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub active: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub image: Option<i32>,
@@ -29,8 +29,8 @@ pub struct Product {
 impl Default for Product {
     fn default() -> Self {
         Self {
-            create_at: Utc::now(),
-            update_at: Utc::now(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
 
             id: Default::default(),
             name: Default::default(),

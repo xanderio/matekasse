@@ -3,5 +3,6 @@
 listen = "0.0.0.0:3000"
 
 [storage]
-# root folder of data store
-data_root = "./data"
+# connection string to sqlite database.
+# Format: sqlite:///path/to/database
+database = "sqlite://database.sqlite"

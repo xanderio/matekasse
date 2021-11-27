@@ -56,18 +56,18 @@ fn default_listen() -> SocketAddr {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct StorageConfig {
-    #[serde(default = "default_data_root")]
-    pub data_root: PathBuf,
+    #[serde(default = "default_database")]
+    pub database: String,
 }
 
-fn default_data_root() -> PathBuf {
-    PathBuf::new().join(".").join("data")
+fn default_database() -> String {
+    "sqlite://./database.sqlite".to_owned()
 }
 
 impl Default for StorageConfig {
     fn default() -> Self {
         Self {
-            data_root: default_data_root(),
+            database: default_database(),
         }
     }
 }

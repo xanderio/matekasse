@@ -1,2 +1,2 @@
 config.toml
-date/
+database.sqlite*
