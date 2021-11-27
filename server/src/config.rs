@@ -3,6 +3,7 @@ use std::{
     path::PathBuf,
 };
 
+use common::DefaultProduct;
 use serde::Deserialize;
 
 const CONFIG_FILENAME: &str = "config.toml";
@@ -34,6 +35,8 @@ pub struct Config {
     pub http: HttpConfig,
     #[serde(default)]
     pub storage: StorageConfig,
+    #[serde(default, rename = "")]
+    pub default_product: DefaultProductConfig,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -61,13 +64,63 @@ pub struct StorageConfig {
 }
 
 fn default_database() -> String {
-    "sqlite://./database.sqlite".to_owned()
+    "sqlite://database.sqlite".to_owned()
 }
 
 impl Default for StorageConfig {
     fn default() -> Self {
         Self {
             database: default_database(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct DefaultProductConfig {
+    #[serde(default = "default_price")]
+    pub price: Option<i32>,
+    pub package_size: Option<String>,
+    pub caffeine: Option<i32>,
+    pub alcohol: Option<i32>,
+    pub energy: Option<i32>,
+    pub sugar: Option<i32>,
+    #[serde(default = "default_active")]
+    pub active: Option<bool>,
+}
+
+fn default_price() -> Option<i32> {
+    Some(150)
+}
+
+fn default_active() -> Option<bool> {
+    Some(true)
+}
+
+impl Default for DefaultProductConfig {
+    fn default() -> Self {
+        Self {
+            price: default_price(),
+            active: default_active(),
+
+            caffeine: Default::default(),
+            alcohol: Default::default(),
+            energy: Default::default(),
+            sugar: Default::default(),
+            package_size: Default::default(),
+        }
+    }
+}
+
+impl From<DefaultProductConfig> for DefaultProduct {
+    fn from(config: DefaultProductConfig) -> Self {
+        DefaultProduct {
+            price: config.price,
+            package_size: config.package_size,
+            caffine: config.caffeine,
+            alcohol: config.alcohol,
+            energy: config.energy,
+            sugar: config.sugar,
+            active: config.active,
         }
     }
 }

@@ -6,3 +6,31 @@ listen = "0.0.0.0:3000"
 # connection string to sqlite database.
 # Format: sqlite:///path/to/database
 database = "sqlite://database.sqlite"
+
+[default-product]
+# price in cent
+# default: 150
+price = 150
+
+# default: unset
+# package_size = "100ml pre bottle"
+
+# caffeine contents in mg per 100ml/g
+# default: unset
+# caffine = 100
+
+# volume percent of alcohol (with two decimal places)
+# default: unset
+# alcohol = 0
+
+# energy per 100g / 100ml without decimal places
+# default: unset
+# energy = 0
+
+# sugar amount per 100g / 100ml with one decimal place
+# default: unset
+# suger = 0
+
+# weather a product is active upon creation or not
+# default: true
+active = true

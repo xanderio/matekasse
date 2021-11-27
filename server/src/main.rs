@@ -11,12 +11,12 @@ mod storage;
 async fn main() -> Result<()> {
     let config = config::load_config().await.expect("unable to load config");
 
-    let db = storage::open_db(config.storage.database).await?;
+    let db = storage::open_db(config.storage.database.clone()).await?;
 
     let api = warp::path("api");
 
     let products = api.and(products::products(db.clone()));
-    let server = api.and(server::server());
+    let server = api.and(server::server(config.default_product.clone()));
 
     let routes = products.or(server);
 

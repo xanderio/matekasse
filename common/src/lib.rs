@@ -45,6 +45,29 @@ impl Default for Product {
     }
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Deserialize)]
+pub struct ProductCreateRequest {
+    pub name: String,
+    /// mg of caffeine per 100 ml/mg/unit
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub caffeine: Option<i32>,
+    /// mg of caffeine per 100 ml/mg/unit
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alcohol: Option<i32>,
+    /// energy per 100ml / 100g with no decimal place
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub energy: Option<i32>,
+    /// g sugar per 100g / 100ml with one decimal place
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sugar: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub price: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image: Option<i32>,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ServerInfo {
     pub version: String,
@@ -84,7 +107,7 @@ pub struct DefaultProduct {
     pub price: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// default package size
-    pub package_size: Option<i32>,
+    pub package_size: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// default caffeine contents in mg per 100ml/g
     pub caffine: Option<i32>,
@@ -97,7 +120,7 @@ pub struct DefaultProduct {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sugar: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub active: Option<i32>,
+    pub active: Option<bool>,
 }
 
 mod i32_or_false {
