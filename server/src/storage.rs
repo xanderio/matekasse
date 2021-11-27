@@ -16,4 +16,3 @@ pub async fn open_db(conn_str: impl AsRef<str>) -> Result<Db> {
 
     Ok(Db { pool, orm })
 }
-
