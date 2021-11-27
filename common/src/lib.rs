@@ -102,9 +102,8 @@ impl Default for ServerInfo {
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct DefaultProduct {
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// default price in cent
-    pub price: Option<i32>,
+    pub price: i32,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// default package size
     pub package_size: Option<String>,
@@ -119,8 +118,7 @@ pub struct DefaultProduct {
     pub energy: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sugar: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub active: Option<bool>,
+    pub active: bool,
 }
 
 mod i32_or_false {

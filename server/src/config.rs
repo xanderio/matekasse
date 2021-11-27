@@ -78,22 +78,22 @@ impl Default for StorageConfig {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct DefaultProductConfig {
     #[serde(default = "default_price")]
-    pub price: Option<i32>,
+    pub price: i32,
     pub package_size: Option<String>,
     pub caffeine: Option<i32>,
     pub alcohol: Option<i32>,
     pub energy: Option<i32>,
     pub sugar: Option<i32>,
     #[serde(default = "default_active")]
-    pub active: Option<bool>,
+    pub active: bool,
 }
 
-fn default_price() -> Option<i32> {
-    Some(150)
+fn default_price() -> i32 {
+    150
 }
 
-fn default_active() -> Option<bool> {
-    Some(true)
+fn default_active() -> bool {
+    true
 }
 
 impl Default for DefaultProductConfig {
