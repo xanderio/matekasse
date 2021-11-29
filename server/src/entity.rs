@@ -1,4 +1,6 @@
 pub mod product {
+    use std::convert::TryFrom;
+
     use common::Product;
     use sea_orm::{entity::prelude::*, ActiveValue};
 
@@ -7,6 +9,7 @@ pub mod product {
     pub struct Model {
         #[sea_orm(primary_key)]
         pub id: i32,
+        #[sea_orm(unique)]
         pub name: String,
         pub caffeine: Option<i32>,
         pub alcohol: Option<i32>,
@@ -31,7 +34,6 @@ pub mod product {
         }
     }
 
-    #[allow(clippy::from_over_into)]
     impl From<Model> for Product {
         fn from(model: Model) -> Self {
             Product {
@@ -47,6 +49,48 @@ pub mod product {
                 active: model.active,
                 image: model.image,
             }
+        }
+    }
+
+    macro_rules! unwrap_or_err {
+        ($struct:ident.$field:ident) => {
+            let $field = if !$struct.$field.is_unset() {
+                $struct.$field.unwrap()
+            } else {
+                return Err(::eyre::eyre!("field not set: {}", stringify!()));
+            };
+        };
+    }
+
+    impl TryFrom<ActiveModel> for Product {
+        type Error = eyre::Error;
+
+        fn try_from(value: ActiveModel) -> Result<Self, Self::Error> {
+            unwrap_or_err!(value.id);
+            unwrap_or_err!(value.name);
+            unwrap_or_err!(value.caffeine);
+            unwrap_or_err!(value.alcohol);
+            unwrap_or_err!(value.energy);
+            unwrap_or_err!(value.sugar);
+            unwrap_or_err!(value.price);
+            unwrap_or_err!(value.created_at);
+            unwrap_or_err!(value.updated_at);
+            unwrap_or_err!(value.active);
+            unwrap_or_err!(value.image);
+
+            Ok(Product {
+                id,
+                name,
+                caffeine,
+                alcohol,
+                energy,
+                sugar,
+                price,
+                created_at: chrono::DateTime::from_utc(created_at, chrono::Utc),
+                updated_at: chrono::DateTime::from_utc(updated_at, chrono::Utc),
+                active,
+                image,
+            })
         }
     }
 }

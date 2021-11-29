@@ -1,7 +1,7 @@
 -- Add migration script here
 CREATE TABLE product (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	name TEXT NOT NULL,
+	name TEXT NOT NULL UNIQUE,
 	caffeine INTEGER,
 	alcohol INTEGER,
 	energy INTEGER,

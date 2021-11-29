@@ -15,7 +15,7 @@ async fn main() -> Result<()> {
 
     let api = warp::path("api");
 
-    let products = api.and(products::products(db.clone()));
+    let products = api.and(products::products(db.clone(), config.clone()));
     let server = api.and(server::server(config.default_product.clone()));
 
     let routes = products.or(server);
