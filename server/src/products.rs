@@ -9,8 +9,8 @@ pub fn products(
     warp::path("v3").and(
         list_product_v1(db.clone())
             .or(list_products_v1(db.clone()))
-            .or(create_product_v1(db, config))
-            .or(delete_project_v1())
+            .or(create_product_v1(db.clone(), config))
+            .or(delete_project_v1(db))
             .or(edit_product_v1()),
     )
 }
@@ -39,10 +39,12 @@ fn create_product_v1(
         .and_then(handler::create_product_v1)
 }
 
-fn delete_project_v1() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone
-{
+fn delete_project_v1(
+    db: Db,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("products" / i32)
         .and(warp::delete())
+        .and(with_db(db))
         .and_then(handler::delete_product_v1)
 }
 
@@ -142,8 +144,25 @@ mod handler {
         }
     }
 
-    pub(super) async fn delete_product_v1(_id: i32) -> Result<impl warp::Reply, Infallible> {
-        Ok(reply::reply())
+    pub(super) async fn delete_product_v1(id: i32, db: Db) -> Result<impl warp::Reply, Infallible> {
+        match ProductModel::find_by_id(id).one(&db.orm).await {
+            Ok(Some(product)) => {
+                let product: product::ActiveModel = product.into();
+                if product.delete(&db.orm).await.is_ok() {
+                    Ok(reply::with_status("product deleted", StatusCode::OK))
+                } else {
+                    Ok(reply::with_status(
+                        "server error",
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                    ))
+                }
+            }
+            Ok(None) => Ok(reply::with_status("id not existent", StatusCode::NOT_FOUND)),
+            Err(_) => Ok(reply::with_status(
+                "server error",
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )),
+        }
     }
 
     pub(super) async fn list_product_v1(
