@@ -10,8 +10,8 @@ pub fn products(
         list_product_v1(db.clone())
             .or(list_products_v1(db.clone()))
             .or(create_product_v1(db.clone(), config))
-            .or(delete_project_v1(db))
-            .or(edit_product_v1()),
+            .or(delete_project_v1(db.clone()))
+            .or(edit_product_v1(db)),
     )
 }
 
@@ -57,10 +57,14 @@ fn list_product_v1(
         .and_then(handler::list_product_v1)
 }
 
-fn edit_product_v1() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone
-{
+fn edit_product_v1(
+    db: Db,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("products" / i32)
         .and(warp::patch())
+        .and(warp::body::content_length_limit(1024 * 32))
+        .and(warp::body::json())
+        .and(with_db(db))
         .and_then(handler::edit_product_v1)
 }
 
@@ -77,7 +81,7 @@ fn with_config(
 mod handler {
     use std::convert::{Infallible, TryInto};
 
-    use common::{Product, ProductCreateRequest};
+    use common::{Product, ProductCreateRequest, ProductEditRequest};
     use sea_orm::{entity::*, DbErr};
     use warp::{hyper::StatusCode, reply};
 
@@ -185,7 +189,65 @@ mod handler {
         }
     }
 
-    pub(super) async fn edit_product_v1(_id: i32) -> Result<impl warp::Reply, Infallible> {
-        Ok(reply::reply())
+    pub(super) async fn edit_product_v1(
+        id: i32,
+        body: ProductEditRequest,
+        db: Db,
+    ) -> Result<Box<dyn warp::Reply>, Infallible> {
+        match ProductModel::find_by_id(id).one(&db.orm).await {
+            Ok(Some(product)) => {
+                let mut product: product::ActiveModel = product.into();
+
+                product.name = body.name.map(ActiveValue::set).unwrap_or(product.name);
+                product.caffeine = body
+                    .caffeine
+                    .map(Option::Some)
+                    .map(ActiveValue::set)
+                    .unwrap_or(product.caffeine);
+                product.alcohol = body
+                    .alcohol
+                    .map(Option::Some)
+                    .map(ActiveValue::set)
+                    .unwrap_or(product.alcohol);
+                product.energy = body
+                    .energy
+                    .map(Option::Some)
+                    .map(ActiveValue::set)
+                    .unwrap_or(product.energy);
+                product.sugar = body
+                    .sugar
+                    .map(Option::Some)
+                    .map(ActiveValue::set)
+                    .unwrap_or(product.sugar);
+                product.price = body.price.map(ActiveValue::set).unwrap_or(product.price);
+                product.active = body.active.map(ActiveValue::set).unwrap_or(product.active);
+                product.image = body
+                    .image
+                    .map(Option::Some)
+                    .map(ActiveValue::set)
+                    .unwrap_or(product.image);
+
+                if let Ok(product) = product.save(&db.orm).await {
+                    let product: Product = product.try_into().unwrap();
+                    Ok(Box::new(reply::with_status(
+                        reply::json(&product),
+                        StatusCode::OK,
+                    )))
+                } else {
+                    Ok(Box::new(reply::with_status(
+                        "server error",
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                    )))
+                }
+            }
+            Ok(None) => Ok(Box::new(reply::with_status(
+                "id not existent",
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))),
+            Err(_) => Ok(Box::new(reply::with_status(
+                "server error",
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))),
+        }
     }
 }

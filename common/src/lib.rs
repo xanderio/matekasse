@@ -68,6 +68,30 @@ pub struct ProductCreateRequest {
     pub image: Option<i32>,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Deserialize)]
+pub struct ProductEditRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// mg of caffeine per 100 ml/mg/unit
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub caffeine: Option<i32>,
+    /// mg of caffeine per 100 ml/mg/unit
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alcohol: Option<i32>,
+    /// energy per 100ml / 100g with no decimal place
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub energy: Option<i32>,
+    /// g sugar per 100g / 100ml with one decimal place
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sugar: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub price: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image: Option<i32>,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ServerInfo {
     pub version: String,
