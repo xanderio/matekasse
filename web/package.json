@@ -1,0 +1,8 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "dependencies": {
+    "bulma": "^0.9.3"
+  },
+  "devDependencies": {}
+}
