@@ -1,15 +1,33 @@
-use std::panic;
+use std::{fmt::Display, panic};
 
 use agents::ProductStore;
+use ybc::{TileCtx, TileSize};
 use yew::prelude::*;
 
 mod agents;
 mod inventory;
+mod menu;
 mod product;
 
 pub struct App {
+    mode: Mode,
     loading: bool,
     _store: Box<dyn Bridge<ProductStore>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Mode {
+    Product,
+    User,
+}
+
+impl Display for Mode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Mode::Product => write!(f, "Einkaufen"),
+            Mode::User => write!(f, "User"),
+        }
+    }
 }
 
 pub enum Msg {
@@ -22,6 +40,7 @@ impl Component for App {
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
         Self {
+            mode: Mode::Product,
             loading: true,
             _store: ProductStore::bridge(link.callback(Msg::Store)),
         }
@@ -48,7 +67,17 @@ impl Component for App {
                     <ybc::Title>{"Loading"}</ybc::Title>
                 </div>
                 <ybc::Section>
-                    <product::ProductGrid/>
+                    <ybc::Container>
+                        <ybc::Tile ctx=TileCtx::Ancestor>
+                            <menu::Menu mode=self.mode/>
+                            <ybc::Tile size=TileSize::Nine>
+                            {match self.mode {
+                                Mode::Product => html!{<product::ProductGrid/>},
+                                Mode::User => html!{<product::ProductGrid/>}
+                            }}
+                            </ybc::Tile>
+                        </ybc::Tile>
+                    </ybc::Container>
                 </ybc::Section>
             </>
         }

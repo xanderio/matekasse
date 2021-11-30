@@ -1,4 +1,4 @@
-use std::{collections::HashSet, ops::Not};
+use std::collections::HashSet;
 
 use anyhow::Error;
 use common::Product;
