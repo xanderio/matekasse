@@ -74,14 +74,24 @@ impl Component for Checkout {
 
     fn view(&self) -> Html {
         let cb = self.link.callback(CheckoutMsg::Select);
+        let pl_active = if self.products.is_empty() {
+            "is-active"
+        } else {
+            ""
+        };
         html! {
-        <ybc::Container fluid=true>
-          <ybc::Tile ctx=Ancestor>
-            <ybc::Tile ctx=Parent vertical=true size=Four>
+        <>
+          <div class=classes!("pageloader", pl_active)>
+            <ybc::Title>{"Loading"}</ybc::Title>
+          </div>
+          <ybc::Container fluid=true>
+            <ybc::Tile ctx=Ancestor>
+              <ybc::Tile ctx=Parent vertical=true size=Four>
                 { for self.products.iter().map(|p| html!{ <ProductCard item=p.clone() onclick=cb.clone() /> }) }
+              </ybc::Tile>
             </ybc::Tile>
-          </ybc::Tile>
-        </ybc::Container>
+          </ybc::Container>
+        </>
           }
     }
 }
