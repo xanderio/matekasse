@@ -4,7 +4,6 @@ use agents::ProductStore;
 use yew::prelude::*;
 
 mod agents;
-mod checkout;
 mod inventory;
 mod product;
 
