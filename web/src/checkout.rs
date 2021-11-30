@@ -84,7 +84,7 @@ impl Component for Checkout {
           <div class=classes!("pageloader", pl_active)>
             <ybc::Title>{"Loading"}</ybc::Title>
           </div>
-          <ybc::Container fluid=true>
+          <ybc::Container>
             <ybc::Tile ctx=Ancestor>
               <ybc::Tile ctx=Parent vertical=true size=Four>
                 { for self.products.iter().map(|p| html!{ <ProductCard item=p.clone() onclick=cb.clone() /> }) }

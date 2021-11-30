@@ -1,12 +1,20 @@
 use std::panic;
 
 use yew::prelude::*;
-use yew_router::router::Router;
+use yew_router::prelude::*;
 
-use crate::navbar::{AppRouter, Navbar};
+#[derive(Switch, Debug, Clone, PartialEq)]
+pub enum AppRouter {
+    #[to = "/user"]
+    Users,
+    #[to = "/inventory"]
+    Inventory,
+    #[to = "/"]
+    Checkout,
+}
 
 mod checkout;
-mod navbar;
+mod inventory;
 
 #[derive(Debug)]
 pub struct App;
@@ -33,15 +41,10 @@ impl Component for App {
               render = Router::render(|router: AppRouter| {
                 let page = match router {
                     AppRouter::Users => html!{<p>{"Users"}</p>},
-                    AppRouter::Inventory => html!{<p>{"Inventory"}</p>},
+                    AppRouter::Inventory => html!{<inventory::Inventory/>},
                     AppRouter::Checkout => html!{<checkout::Checkout/>},
                 };
-                html!{
-                    <>
-                    <Navbar router=router />
-                    {page}
-                    </>
-                }
+                page
             })
           />
         }
