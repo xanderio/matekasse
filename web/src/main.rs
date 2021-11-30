@@ -1,34 +1,40 @@
 use std::panic;
 
+use agents::ProductStore;
 use yew::prelude::*;
-use yew_router::prelude::*;
 
-#[derive(Switch, Debug, Clone, PartialEq)]
-pub enum AppRouter {
-    #[to = "/user"]
-    Users,
-    #[to = "/inventory"]
-    Inventory,
-    #[to = "/"]
-    Checkout,
-}
-
+mod agents;
 mod checkout;
 mod inventory;
+mod product;
 
-#[derive(Debug)]
-pub struct App;
+pub struct App {
+    loading: bool,
+    _store: Box<dyn Bridge<ProductStore>>,
+}
+
+pub enum Msg {
+    Store(agents::Output),
+}
 
 impl Component for App {
-    type Message = ();
+    type Message = Msg;
     type Properties = ();
 
-    fn create(_props: Self::Properties, _link: ComponentLink<Self>) -> Self {
-        Self
+    fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        Self {
+            loading: true,
+            _store: ProductStore::bridge(link.callback(Msg::Store)),
+        }
     }
 
-    fn update(&mut self, _msg: Self::Message) -> ShouldRender {
-        unimplemented!()
+    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+        match msg {
+            Msg::Store(agents::Output::Update(products)) => {
+                self.loading = products.is_empty();
+                true
+            }
+        }
     }
 
     fn change(&mut self, _props: Self::Properties) -> ShouldRender {
@@ -36,17 +42,16 @@ impl Component for App {
     }
 
     fn view(&self) -> Html {
+        let pl_active = if self.loading { "is-active" } else { "" };
         html! {
-          <Router<AppRouter>
-              render = Router::render(|router: AppRouter| {
-                let page = match router {
-                    AppRouter::Users => html!{<p>{"Users"}</p>},
-                    AppRouter::Inventory => html!{<inventory::Inventory/>},
-                    AppRouter::Checkout => html!{<checkout::Checkout/>},
-                };
-                page
-            })
-          />
+            <>
+                <div class=classes!("pageloader", "is-bottom-to-top", pl_active)>
+                    <ybc::Title>{"Loading"}</ybc::Title>
+                </div>
+                <ybc::Section>
+                    <product::ProductGrid/>
+                </ybc::Section>
+            </>
         }
     }
 }

@@ -7,7 +7,6 @@ edition = "2021"
 [dependencies]
 yew = "0.18"
 ybc = "0.2"
-yew-router = "0.15.0"
 gloo-events = "0.1"
 console_error_panic_hook = "0.1.7"
 wasm-logger = "0.2.0"
