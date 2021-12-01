@@ -241,3 +241,82 @@ mod i32_or_false {
         }
     }
 }
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct User {
+    pub id: i32,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub balance: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub barcode: Option<String>,
+    #[serde(default = "default_true")]
+    pub active: bool,
+    #[serde(default)]
+    pub audit: bool,
+    #[serde(default = "default_true")]
+    pub redirect: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<i32>,
+}
+
+impl Default for User {
+    fn default() -> Self {
+        Self {
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            active: default_true(),
+            redirect: default_true(),
+
+            id: Default::default(),
+            name: Default::default(),
+            email: Default::default(),
+            balance: Default::default(),
+            barcode: Default::default(),
+            audit: Default::default(),
+            avatar: Default::default(),
+        }
+    }
+}
+
+fn default_true() -> bool {
+    true
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct UserCreateRequest {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub balance: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audit: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub redirect: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<i32>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct UserEditRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub balance: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audit: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub redirect: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<i32>,
+}
