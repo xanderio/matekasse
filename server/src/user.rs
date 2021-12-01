@@ -6,7 +6,8 @@ pub fn users(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path("v3").and(
-        list_user_v1(db.clone())
+        add_balance_v1(db.clone())
+            .or(list_user_v1(db.clone()))
             .or(list_users_v1(db.clone()))
             .or(create_user_v1(db.clone()))
             .or(delete_user_v1(db.clone()))
@@ -63,6 +64,17 @@ fn edit_user_v1(
         .and(warp::body::json())
         .and(with_db(db))
         .and_then(handler::edit_user_v1)
+}
+
+fn add_balance_v1(
+    db: Db,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("users" / i32 / "deposit")
+        .and(warp::post())
+        .and(warp::body::content_length_limit(1024 * 32))
+        .and(warp::body::json())
+        .and(with_db(db))
+        .and_then(handler::add_balance_v1)
 }
 
 fn with_db(db: Db) -> impl Filter<Extract = (Db,), Error = std::convert::Infallible> + Clone {
@@ -203,6 +215,41 @@ mod handler {
                     .map(Option::Some)
                     .map(ActiveValue::set)
                     .unwrap_or(user.avatar);
+
+                if let Ok(user) = user.save(&db.orm).await {
+                    let user: User = user.try_into().unwrap();
+                    Ok(Box::new(reply::with_status(
+                        reply::json(&user),
+                        StatusCode::OK,
+                    )))
+                } else {
+                    Ok(Box::new(reply::with_status(
+                        "server error",
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                    )))
+                }
+            }
+            Ok(None) => Ok(Box::new(reply::with_status(
+                "id not existent",
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))),
+            Err(_) => Ok(Box::new(reply::with_status(
+                "server error",
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))),
+        }
+    }
+
+    pub(super) async fn add_balance_v1(
+        id: i32,
+        amount: i32,
+        db: Db,
+    ) -> Result<Box<dyn warp::Reply>, Infallible> {
+        match UserModel::find_by_id(id).one(&db.orm).await {
+            Ok(Some(user)) => {
+                let mut user = user.into_active_model();
+
+                user.balance = Set(user.balance.unwrap() + amount);
 
                 if let Ok(user) = user.save(&db.orm).await {
                     let user: User = user.try_into().unwrap();
