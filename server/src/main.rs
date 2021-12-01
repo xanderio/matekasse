@@ -6,6 +6,7 @@ mod entity;
 mod products;
 mod server;
 mod storage;
+mod user;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -16,9 +17,10 @@ async fn main() -> Result<()> {
     let api = warp::path("api");
 
     let products = api.and(products::products(db.clone(), config.clone()));
+    let users = api.and(user::users(db.clone()));
     let server = api.and(server::server(config.default_product.clone()));
 
-    let routes = products.or(server);
+    let routes = products.or(users).or(server);
 
     println!("listening on {}", config.http.listen);
     warp::serve(routes).run(config.http.listen).await;
