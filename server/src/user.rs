@@ -6,28 +6,28 @@ pub fn users(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path("v3").and(
-        add_balance_v1(db.clone())
-            .or(sub_balance_v1(db.clone()))
-            .or(list_user_v1(db.clone()))
-            .or(list_users_v1(db.clone()))
-            .or(create_user_v1(db.clone()))
-            .or(delete_user_v1(db.clone()))
-            .or(edit_user_v1(db)),
+        add_balance_v3(db.clone())
+            .or(sub_balance_v3(db.clone()))
+            .or(list_user_v3(db.clone()))
+            .or(list_users_v3(db.clone()))
+            .or(create_user_v3(db.clone()))
+            .or(delete_user_v3(db.clone()))
+            .or(edit_user_v3(db)),
     )
 }
 
 /// returns all products
 /// API: https://space-market.github.io/API/swagger-ui/#!/products/get_products
-fn list_users_v1(
+fn list_users_v3(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path("users")
         .and(warp::get())
         .and(with_db(db))
-        .and_then(handler::list_users_v1)
+        .and_then(handler::list_users_v3)
 }
 
-fn create_user_v1(
+fn create_user_v3(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path("users")
@@ -35,28 +35,28 @@ fn create_user_v1(
         .and(warp::body::content_length_limit(1024 * 32))
         .and(warp::body::json())
         .and(with_db(db))
-        .and_then(handler::create_user_v1)
+        .and_then(handler::create_user_v3)
 }
 
-fn delete_user_v1(
+fn delete_user_v3(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("users" / i32)
         .and(warp::delete())
         .and(with_db(db))
-        .and_then(handler::delete_user_v1)
+        .and_then(handler::delete_user_v3)
 }
 
-fn list_user_v1(
+fn list_user_v3(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("users" / i32)
         .and(warp::get())
         .and(with_db(db))
-        .and_then(handler::list_user_v1)
+        .and_then(handler::list_user_v3)
 }
 
-fn edit_user_v1(
+fn edit_user_v3(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("users" / i32)
@@ -64,10 +64,10 @@ fn edit_user_v1(
         .and(warp::body::content_length_limit(1024 * 32))
         .and(warp::body::json())
         .and(with_db(db))
-        .and_then(handler::edit_user_v1)
+        .and_then(handler::edit_user_v3)
 }
 
-fn add_balance_v1(
+fn add_balance_v3(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("users" / i32 / "deposit")
@@ -76,10 +76,10 @@ fn add_balance_v1(
         .and(warp::body::json())
         .and(with_operation(handler::Operation::Add))
         .and(with_db(db))
-        .and_then(handler::modify_balance_v1)
+        .and_then(handler::modify_balance_v3)
 }
 
-fn sub_balance_v1(
+fn sub_balance_v3(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("users" / i32 / "spend")
@@ -88,7 +88,7 @@ fn sub_balance_v1(
         .and(warp::body::json())
         .and(with_operation(handler::Operation::Sub))
         .and(with_db(db))
-        .and_then(handler::modify_balance_v1)
+        .and_then(handler::modify_balance_v3)
 }
 
 fn with_db(db: Db) -> impl Filter<Extract = (Db,), Error = std::convert::Infallible> + Clone {
@@ -114,7 +114,7 @@ mod handler {
     };
 
     /// returns all products
-    pub(super) async fn list_users_v1(db: Db) -> Result<impl warp::Reply, Infallible> {
+    pub(super) async fn list_users_v3(db: Db) -> Result<impl warp::Reply, Infallible> {
         let users = UserModel::find()
             .all(&db.orm)
             .await
@@ -126,7 +126,7 @@ mod handler {
         Ok(reply::json(&users))
     }
 
-    pub(super) async fn create_user_v1(
+    pub(super) async fn create_user_v3(
         user: UserCreateRequest,
         db: Db,
     ) -> Result<Box<dyn warp::Reply>, Infallible> {
@@ -173,7 +173,7 @@ mod handler {
         }
     }
 
-    pub(super) async fn delete_user_v1(id: i32, db: Db) -> Result<impl warp::Reply, Infallible> {
+    pub(super) async fn delete_user_v3(id: i32, db: Db) -> Result<impl warp::Reply, Infallible> {
         match UserModel::find_by_id(id).one(&db.orm).await {
             Ok(Some(user)) => {
                 let user: user::ActiveModel = user.into();
@@ -194,7 +194,7 @@ mod handler {
         }
     }
 
-    pub(super) async fn list_user_v1(id: i32, db: Db) -> Result<Box<dyn warp::Reply>, Infallible> {
+    pub(super) async fn list_user_v3(id: i32, db: Db) -> Result<Box<dyn warp::Reply>, Infallible> {
         match UserModel::find_by_id(id).one(&db.orm).await {
             Ok(Some(user)) => {
                 let user: User = user.into();
@@ -211,7 +211,7 @@ mod handler {
         }
     }
 
-    pub(super) async fn edit_user_v1(
+    pub(super) async fn edit_user_v3(
         id: i32,
         body: UserEditRequest,
         db: Db,
@@ -266,7 +266,7 @@ mod handler {
         Sub,
     }
 
-    pub(super) async fn modify_balance_v1(
+    pub(super) async fn modify_balance_v3(
         id: i32,
         amount: i32,
         operation: Operation,

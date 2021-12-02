@@ -7,26 +7,26 @@ pub fn products(
     config: Config,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path("v3").and(
-        list_product_v1(db.clone())
-            .or(list_products_v1(db.clone()))
-            .or(create_product_v1(db.clone(), config))
-            .or(delete_project_v1(db.clone()))
-            .or(edit_product_v1(db)),
+        list_product_v3(db.clone())
+            .or(list_products_v3(db.clone()))
+            .or(create_product_v3(db.clone(), config))
+            .or(delete_project_v3(db.clone()))
+            .or(edit_product_v3(db)),
     )
 }
 
 /// returns all products
 /// API: https://space-market.github.io/API/swagger-ui/#!/products/get_products
-fn list_products_v1(
+fn list_products_v3(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path("products")
         .and(warp::get())
         .and(with_db(db))
-        .and_then(handler::list_products_v1)
+        .and_then(handler::list_products_v3)
 }
 
-fn create_product_v1(
+fn create_product_v3(
     db: Db,
     config: Config,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -36,28 +36,28 @@ fn create_product_v1(
         .and(warp::body::json())
         .and(with_db(db))
         .and(with_config(config))
-        .and_then(handler::create_product_v1)
+        .and_then(handler::create_product_v3)
 }
 
-fn delete_project_v1(
+fn delete_project_v3(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("products" / i32)
         .and(warp::delete())
         .and(with_db(db))
-        .and_then(handler::delete_product_v1)
+        .and_then(handler::delete_product_v3)
 }
 
-fn list_product_v1(
+fn list_product_v3(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("products" / i32)
         .and(warp::get())
         .and(with_db(db))
-        .and_then(handler::list_product_v1)
+        .and_then(handler::list_product_v3)
 }
 
-fn edit_product_v1(
+fn edit_product_v3(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("products" / i32)
@@ -65,7 +65,7 @@ fn edit_product_v1(
         .and(warp::body::content_length_limit(1024 * 32))
         .and(warp::body::json())
         .and(with_db(db))
-        .and_then(handler::edit_product_v1)
+        .and_then(handler::edit_product_v3)
 }
 
 fn with_db(db: Db) -> impl Filter<Extract = (Db,), Error = std::convert::Infallible> + Clone {
@@ -92,7 +92,7 @@ mod handler {
     };
 
     /// returns all products
-    pub(super) async fn list_products_v1(db: Db) -> Result<impl warp::Reply, Infallible> {
+    pub(super) async fn list_products_v3(db: Db) -> Result<impl warp::Reply, Infallible> {
         let products = ProductModel::find()
             .all(&db.orm)
             .await
@@ -104,7 +104,7 @@ mod handler {
         Ok(reply::json(&products))
     }
 
-    pub(super) async fn create_product_v1(
+    pub(super) async fn create_product_v3(
         product: ProductCreateRequest,
         db: Db,
         config: Config,
@@ -148,7 +148,7 @@ mod handler {
         }
     }
 
-    pub(super) async fn delete_product_v1(id: i32, db: Db) -> Result<impl warp::Reply, Infallible> {
+    pub(super) async fn delete_product_v3(id: i32, db: Db) -> Result<impl warp::Reply, Infallible> {
         match ProductModel::find_by_id(id).one(&db.orm).await {
             Ok(Some(product)) => {
                 let product: product::ActiveModel = product.into();
@@ -169,7 +169,7 @@ mod handler {
         }
     }
 
-    pub(super) async fn list_product_v1(
+    pub(super) async fn list_product_v3(
         id: i32,
         db: Db,
     ) -> Result<Box<dyn warp::Reply>, Infallible> {
@@ -189,7 +189,7 @@ mod handler {
         }
     }
 
-    pub(super) async fn edit_product_v1(
+    pub(super) async fn edit_product_v3(
         id: i32,
         body: ProductEditRequest,
         db: Db,
