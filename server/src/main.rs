@@ -7,6 +7,7 @@ mod products;
 mod server;
 mod storage;
 mod user;
+mod utils;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -20,7 +21,7 @@ async fn main() -> Result<()> {
     let users = api.and(user::users(db.clone()));
     let server = api.and(server::server(config.default_product.clone()));
 
-    let routes = products.or(users).or(server);
+    let routes = crate::balanced_or_tree!(products, users, server);
 
     println!("listening on {}", config.http.listen);
     warp::serve(routes).run(config.http.listen).await;

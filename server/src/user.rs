@@ -1,20 +1,30 @@
 use warp::Filter;
 
+use crate::balanced_or_tree;
 use crate::storage::Db;
 
 pub fn users(
     db: Db,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path("v3").and(
-        add_balance_v3(db.clone())
-            .or(sub_balance_v3(db.clone()))
-            .or(buy_product_v3(db.clone()))
-            .or(list_user_v3(db.clone()))
-            .or(list_users_v3(db.clone()))
-            .or(create_user_v3(db.clone()))
-            .or(delete_user_v3(db.clone()))
-            .or(edit_user_v3(db)),
-    )
+    let add_balance_v3 = add_balance_v3(db.clone());
+    let sub_balance_v3 = sub_balance_v3(db.clone());
+    let buy_product_v3 = buy_product_v3(db.clone());
+    let list_user_v3 = list_user_v3(db.clone());
+    let list_users_v3 = list_users_v3(db.clone());
+    let create_user_v3 = create_user_v3(db.clone());
+    let delete_user_v3 = delete_user_v3(db.clone());
+    let edit_user_v3 = edit_user_v3(db);
+    let routes = balanced_or_tree!(
+        add_balance_v3,
+        sub_balance_v3,
+        buy_product_v3,
+        list_user_v3,
+        list_users_v3,
+        create_user_v3,
+        delete_user_v3,
+        edit_user_v3
+    );
+    warp::path("v3").and(routes)
 }
 
 /// returns all products

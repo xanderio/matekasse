@@ -1,18 +1,24 @@
 use warp::Filter;
 
-use crate::{config::Config, storage::Db};
+use crate::{balanced_or_tree, config::Config, storage::Db};
 
 pub fn products(
     db: Db,
     config: Config,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path("v3").and(
-        list_product_v3(db.clone())
-            .or(list_products_v3(db.clone()))
-            .or(create_product_v3(db.clone(), config))
-            .or(delete_project_v3(db.clone()))
-            .or(edit_product_v3(db)),
-    )
+    let list_product_v3 = list_product_v3(db.clone());
+    let list_products_v3 = list_products_v3(db.clone());
+    let create_product_v3 = create_product_v3(db.clone(), config);
+    let delete_product_v3 = delete_project_v3(db.clone());
+    let edit_product_v3 = edit_product_v3(db);
+    let routes = balanced_or_tree!(
+        list_product_v3,
+        list_products_v3,
+        create_product_v3,
+        delete_product_v3,
+        edit_product_v3
+    );
+    warp::path("v3").and(routes)
 }
 
 /// returns all products
