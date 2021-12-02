@@ -7,6 +7,7 @@ pub fn users(
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path("v3").and(
         add_balance_v1(db.clone())
+            .or(sub_balance_v1(db.clone()))
             .or(list_user_v1(db.clone()))
             .or(list_users_v1(db.clone()))
             .or(create_user_v1(db.clone()))
@@ -73,12 +74,31 @@ fn add_balance_v1(
         .and(warp::post())
         .and(warp::body::content_length_limit(1024 * 32))
         .and(warp::body::json())
+        .and(with_operation(handler::Operation::Add))
         .and(with_db(db))
-        .and_then(handler::add_balance_v1)
+        .and_then(handler::modify_balance_v1)
+}
+
+fn sub_balance_v1(
+    db: Db,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("users" / i32 / "spend")
+        .and(warp::post())
+        .and(warp::body::content_length_limit(1024 * 32))
+        .and(warp::body::json())
+        .and(with_operation(handler::Operation::Sub))
+        .and(with_db(db))
+        .and_then(handler::modify_balance_v1)
 }
 
 fn with_db(db: Db) -> impl Filter<Extract = (Db,), Error = std::convert::Infallible> + Clone {
     warp::any().map(move || db.clone())
+}
+
+fn with_operation(
+    opt: handler::Operation,
+) -> impl Filter<Extract = (handler::Operation,), Error = std::convert::Infallible> + Clone {
+    warp::any().map(move || opt)
 }
 
 mod handler {
@@ -240,16 +260,26 @@ mod handler {
         }
     }
 
-    pub(super) async fn add_balance_v1(
+    #[derive(Debug, Clone, Copy)]
+    pub(super) enum Operation {
+        Add,
+        Sub,
+    }
+
+    pub(super) async fn modify_balance_v1(
         id: i32,
         amount: i32,
+        operation: Operation,
         db: Db,
     ) -> Result<Box<dyn warp::Reply>, Infallible> {
         match UserModel::find_by_id(id).one(&db.orm).await {
             Ok(Some(user)) => {
+                let balance = user.balance;
                 let mut user = user.into_active_model();
-
-                user.balance = Set(user.balance.unwrap() + amount);
+                user.balance = Set(match operation {
+                    Operation::Add => balance + amount,
+                    Operation::Sub => balance - amount,
+                });
 
                 if let Ok(user) = user.save(&db.orm).await {
                     let user: User = user.try_into().unwrap();
