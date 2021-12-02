@@ -8,6 +8,7 @@ pub fn users(
     warp::path("v3").and(
         add_balance_v3(db.clone())
             .or(sub_balance_v3(db.clone()))
+            .or(buy_product_v3(db.clone()))
             .or(list_user_v3(db.clone()))
             .or(list_users_v3(db.clone()))
             .or(create_user_v3(db.clone()))
@@ -91,6 +92,17 @@ fn sub_balance_v3(
         .and_then(handler::modify_balance_v3)
 }
 
+fn buy_product_v3(
+    db: Db,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("users" / i32 / "buy")
+        .and(warp::post())
+        .and(warp::body::content_length_limit(1024 * 32))
+        .and(warp::body::json())
+        .and(with_db(db))
+        .and_then(handler::buy_product_v3)
+}
+
 fn with_db(db: Db) -> impl Filter<Extract = (Db,), Error = std::convert::Infallible> + Clone {
     warp::any().map(move || db.clone())
 }
@@ -109,7 +121,10 @@ mod handler {
     use warp::{hyper::StatusCode, reply};
 
     use crate::{
-        entity::user::{self, Entity as UserModel},
+        entity::{
+            product,
+            user::{self, Entity as UserModel},
+        },
         storage::Db,
     };
 
@@ -297,6 +312,56 @@ mod handler {
             Ok(None) => Ok(Box::new(reply::with_status(
                 "id not existent",
                 StatusCode::INTERNAL_SERVER_ERROR,
+            ))),
+            Err(_) => Ok(Box::new(reply::with_status(
+                "server error",
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))),
+        }
+    }
+
+    pub(super) async fn buy_product_v3(
+        user_id: i32,
+        product_id: i32,
+        db: Db,
+    ) -> Result<Box<dyn warp::Reply>, Infallible> {
+        let product = match product::Entity::find_by_id(product_id).one(&db.orm).await {
+            Ok(Some(product)) => product,
+            Ok(None) => {
+                return Ok(Box::new(reply::with_status(
+                    "id not existent",
+                    StatusCode::NOT_FOUND,
+                )))
+            }
+            Err(_) => {
+                return Ok(Box::new(reply::with_status(
+                    "server error",
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                )))
+            }
+        };
+        match UserModel::find_by_id(user_id).one(&db.orm).await {
+            Ok(Some(user)) => {
+                let balance = user.balance;
+                let mut user = user.into_active_model();
+                user.balance = Set(balance - product.price);
+
+                if let Ok(user) = user.save(&db.orm).await {
+                    let user: User = user.try_into().unwrap();
+                    Ok(Box::new(reply::with_status(
+                        reply::json(&user),
+                        StatusCode::OK,
+                    )))
+                } else {
+                    Ok(Box::new(reply::with_status(
+                        "server error",
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                    )))
+                }
+            }
+            Ok(None) => Ok(Box::new(reply::with_status(
+                "id not existent",
+                StatusCode::NOT_FOUND,
             ))),
             Err(_) => Ok(Box::new(reply::with_status(
                 "server error",
