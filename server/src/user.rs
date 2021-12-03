@@ -1,8 +1,7 @@
 use axum::{
     extract::{Extension, Path},
     http::StatusCode,
-    routing::{get, post},
-    Json, Router,
+    routing, Json, Router,
 };
 use serde::Deserialize;
 
@@ -22,17 +21,14 @@ use crate::{
 
 pub fn router() -> Router {
     Router::new()
-        .route("/", get(list_users_v3).post(create_user_v3))
-        .route("/:id/:operation", post(modify_balance_v3))
-        .route("/:id/buy", post(buy_product_v3))
-        .route(
-            "/:id",
-            get(list_user_v3).patch(edit_user_v3).delete(delete_user_v3),
-        )
+        .route("/", routing::get(get_all).post(create))
+        .route("/:id/:operation", routing::post(modify_balance))
+        .route("/:id/buy", routing::post(buy))
+        .route("/:id", routing::get(get).patch(edit).delete(delete))
 }
 
 /// returns all products
-async fn list_users_v3(Extension(db): Extension<Db>) -> Result<Json<Vec<User>>> {
+async fn get_all(Extension(db): Extension<Db>) -> Result<Json<Vec<User>>> {
     let users = UserModel::find()
         .all(&db.orm)
         .await?
@@ -43,7 +39,7 @@ async fn list_users_v3(Extension(db): Extension<Db>) -> Result<Json<Vec<User>>> 
     Ok(Json(users))
 }
 
-async fn create_user_v3(
+async fn create(
     Json(user): Json<UserCreateRequest>,
     Extension(db): Extension<Db>,
 ) -> Result<(StatusCode, Json<User>)> {
@@ -66,7 +62,7 @@ async fn create_user_v3(
     Ok((StatusCode::CREATED, Json(user)))
 }
 
-async fn delete_user_v3(Path(id): Path<i32>, Extension(db): Extension<Db>) -> Result<&'static str> {
+async fn delete(Path(id): Path<i32>, Extension(db): Extension<Db>) -> Result<&'static str> {
     UserModel::find_by_id(id)
         .one(&db.orm)
         .await?
@@ -77,7 +73,7 @@ async fn delete_user_v3(Path(id): Path<i32>, Extension(db): Extension<Db>) -> Re
     Ok("user deleted")
 }
 
-async fn list_user_v3(Path(id): Path<i32>, Extension(db): Extension<Db>) -> Result<Json<User>> {
+async fn get(Path(id): Path<i32>, Extension(db): Extension<Db>) -> Result<Json<User>> {
     let user = UserModel::find_by_id(id)
         .one(&db.orm)
         .await?
@@ -86,7 +82,7 @@ async fn list_user_v3(Path(id): Path<i32>, Extension(db): Extension<Db>) -> Resu
     Ok(Json(user))
 }
 
-async fn edit_user_v3(
+async fn edit(
     Path(id): Path<i32>,
     Json(body): Json<UserEditRequest>,
     Extension(db): Extension<Db>,
@@ -125,7 +121,7 @@ enum Operation {
     Deposit,
 }
 
-async fn modify_balance_v3(
+async fn modify_balance(
     Path((id, operation)): Path<(i32, Operation)>,
     Json(amount): Json<i32>,
     Extension(db): Extension<Db>,
@@ -145,7 +141,7 @@ async fn modify_balance_v3(
     Ok(Json(user))
 }
 
-async fn buy_product_v3(
+async fn buy(
     Path(user_id): Path<i32>,
     Json(product_id): Json<i32>,
     Extension(db): Extension<Db>,

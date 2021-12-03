@@ -1,8 +1,7 @@
 use axum::{
     extract::{Extension, Path},
     http::StatusCode,
-    routing::get,
-    Json, Router,
+    routing, Json, Router,
 };
 
 use std::convert::TryInto;
@@ -19,16 +18,11 @@ use crate::{
 
 pub fn router() -> Router {
     Router::new()
-        .route("/", get(list_products_v3).post(create_product_v3))
-        .route(
-            "/:id",
-            get(list_product_v3)
-                .delete(delete_product_v3)
-                .patch(edit_product_v3),
-        )
+        .route("/", routing::get(get_all).post(create))
+        .route("/:id", routing::get(get).delete(delete).patch(edit))
 }
 
-async fn list_products_v3(Extension(db): Extension<Db>) -> Result<Json<Vec<Product>>> {
+async fn get_all(Extension(db): Extension<Db>) -> Result<Json<Vec<Product>>> {
     let products = ProductModel::find()
         .all(&db.orm)
         .await?
@@ -39,7 +33,7 @@ async fn list_products_v3(Extension(db): Extension<Db>) -> Result<Json<Vec<Produ
     Ok(Json(products))
 }
 
-async fn create_product_v3(
+async fn create(
     Json(product): Json<ProductCreateRequest>,
     Extension(db): Extension<Db>,
     Extension(config): Extension<Config>,
@@ -59,10 +53,7 @@ async fn create_product_v3(
     Ok((StatusCode::CREATED, Json(product)))
 }
 
-async fn delete_product_v3(
-    Path(id): Path<i32>,
-    Extension(db): Extension<Db>,
-) -> Result<&'static str> {
+async fn delete(Path(id): Path<i32>, Extension(db): Extension<Db>) -> Result<&'static str> {
     ProductModel::find_by_id(id)
         .one(&db.orm)
         .await?
@@ -73,10 +64,7 @@ async fn delete_product_v3(
     Ok("product deleted")
 }
 
-async fn list_product_v3(
-    Path(id): Path<i32>,
-    Extension(db): Extension<Db>,
-) -> Result<Json<Product>> {
+async fn get(Path(id): Path<i32>, Extension(db): Extension<Db>) -> Result<Json<Product>> {
     let product = ProductModel::find_by_id(id)
         .one(&db.orm)
         .await?
@@ -85,7 +73,7 @@ async fn list_product_v3(
     Ok(Json(product))
 }
 
-async fn edit_product_v3(
+async fn edit(
     Path(id): Path<i32>,
     Json(body): Json<ProductEditRequest>,
     Extension(db): Extension<Db>,
