@@ -125,9 +125,10 @@ enum Operation {
 
 async fn modify_balance(
     Path((id, operation)): Path<(i32, Operation)>,
-    Json(amount): Json<i32>,
+    body: String,
     Extension(db): Extension<Db>,
 ) -> Result<Json<User>> {
+    let amount = body.parse::<i32>()?;
     let user = UserModel::find_by_id(id)
         .one(&db.orm)
         .await?
@@ -145,9 +146,10 @@ async fn modify_balance(
 
 async fn buy(
     Path(user_id): Path<i32>,
-    Json(product_id): Json<i32>,
+    body: String,
     Extension(db): Extension<Db>,
 ) -> Result<Json<User>> {
+    let product_id = body.parse::<i32>()?;
     let product = product::Entity::find_by_id(product_id)
         .one(&db.orm)
         .await?

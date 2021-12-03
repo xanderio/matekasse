@@ -15,6 +15,8 @@ pub(crate) enum AppError {
     Conflict,
     #[error("not found")]
     NotFount,
+    #[error(transparent)]
+    ParseError(#[from] std::num::ParseIntError),
     #[error("{0:?}")]
     Error(#[from] eyre::Error),
 }
@@ -47,6 +49,7 @@ impl IntoResponse for AppError {
             AppError::Transaction(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Conflict => StatusCode::CONFLICT,
             AppError::NotFount => StatusCode::NOT_FOUND,
+            AppError::ParseError(_) => StatusCode::BAD_REQUEST,
             AppError::Error(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
