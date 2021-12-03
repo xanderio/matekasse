@@ -326,3 +326,10 @@ pub struct FundsTransferRequest {
     pub amount: i32,
     pub receiver: i32,
 }
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct UsersStatsResponce {
+    pub user_count: i32,
+    pub active_count: i32,
+    pub balance_sum: i32,
+}

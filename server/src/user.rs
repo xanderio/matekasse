@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 use std::convert::TryInto;
 
-use common::{FundsTransferRequest, User, UserCreateRequest, UserEditRequest};
+use common::{FundsTransferRequest, User, UserCreateRequest, UserEditRequest, UsersStatsResponce};
 use sea_orm::{entity::*, ConnectionTrait};
 
 use crate::{
@@ -22,6 +22,7 @@ use crate::{
 pub fn router() -> Router {
     Router::new()
         .route("/", routing::get(get_all).post(create))
+        .route("/stats", routing::get(stats))
         .route("/:id/:operation", routing::post(modify_balance))
         .route("/:id/buy", routing::post(buy))
         .route("/:id/transfer", routing::post(transfer))
@@ -197,4 +198,26 @@ async fn transfer(
             })
         })
         .await?)
+}
+
+async fn stats(Extension(db): Extension<Db>) -> Result<Json<UsersStatsResponce>> {
+    let users = UserModel::find().all(&db.orm).await?;
+
+    let stats = users.iter().fold(
+        UsersStatsResponce {
+            user_count: 0,
+            active_count: 0,
+            balance_sum: 0,
+        },
+        |acc, i| {
+            let active_count = acc.active_count + if i.active { 1 } else { 0 };
+            UsersStatsResponce {
+                user_count: acc.user_count + 1,
+                active_count,
+                balance_sum: acc.balance_sum + i.balance,
+            }
+        },
+    );
+
+    Ok(Json(stats))
 }
