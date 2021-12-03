@@ -1,382 +1,168 @@
-use warp::Filter;
+use axum::{
+    extract::{Extension, Path},
+    http::StatusCode,
+    routing::{get, post},
+    Json, Router,
+};
+use serde::Deserialize;
 
-use crate::balanced_or_tree;
-use crate::storage::Db;
+use std::convert::TryInto;
 
-pub fn users(
-    db: Db,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    let add_balance_v3 = add_balance_v3(db.clone());
-    let sub_balance_v3 = sub_balance_v3(db.clone());
-    let buy_product_v3 = buy_product_v3(db.clone());
-    let list_user_v3 = list_user_v3(db.clone());
-    let list_users_v3 = list_users_v3(db.clone());
-    let create_user_v3 = create_user_v3(db.clone());
-    let delete_user_v3 = delete_user_v3(db.clone());
-    let edit_user_v3 = edit_user_v3(db);
-    let routes = balanced_or_tree!(
-        add_balance_v3,
-        sub_balance_v3,
-        buy_product_v3,
-        list_user_v3,
-        list_users_v3,
-        create_user_v3,
-        delete_user_v3,
-        edit_user_v3
-    );
-    warp::path("v3").and(routes)
+use common::{User, UserCreateRequest, UserEditRequest};
+use sea_orm::entity::*;
+
+use crate::{
+    entity::{
+        product,
+        user::{self, Entity as UserModel},
+    },
+    storage::Db,
+    utils::{AppError, Result},
+};
+
+pub fn router() -> Router {
+    Router::new()
+        .route("/", get(list_users_v3).post(create_user_v3))
+        .route("/:id/:operation", post(modify_balance_v3))
+        .route("/:id/buy", post(buy_product_v3))
+        .route(
+            "/:id",
+            get(list_user_v3).patch(edit_user_v3).delete(delete_user_v3),
+        )
 }
 
 /// returns all products
-/// API: https://space-market.github.io/API/swagger-ui/#!/products/get_products
-fn list_users_v3(
-    db: Db,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path("users")
-        .and(warp::get())
-        .and(with_db(db))
-        .and_then(handler::list_users_v3)
+async fn list_users_v3(Extension(db): Extension<Db>) -> Result<Json<Vec<User>>> {
+    let users = UserModel::find()
+        .all(&db.orm)
+        .await?
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<User>>();
+
+    Ok(Json(users))
 }
 
-fn create_user_v3(
-    db: Db,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path("users")
-        .and(warp::post())
-        .and(warp::body::content_length_limit(1024 * 32))
-        .and(warp::body::json())
-        .and(with_db(db))
-        .and_then(handler::create_user_v3)
-}
-
-fn delete_user_v3(
-    db: Db,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("users" / i32)
-        .and(warp::delete())
-        .and(with_db(db))
-        .and_then(handler::delete_user_v3)
-}
-
-fn list_user_v3(
-    db: Db,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("users" / i32)
-        .and(warp::get())
-        .and(with_db(db))
-        .and_then(handler::list_user_v3)
-}
-
-fn edit_user_v3(
-    db: Db,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("users" / i32)
-        .and(warp::patch())
-        .and(warp::body::content_length_limit(1024 * 32))
-        .and(warp::body::json())
-        .and(with_db(db))
-        .and_then(handler::edit_user_v3)
-}
-
-fn add_balance_v3(
-    db: Db,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("users" / i32 / "deposit")
-        .and(warp::post())
-        .and(warp::body::content_length_limit(1024 * 32))
-        .and(warp::body::json())
-        .and(with_operation(handler::Operation::Add))
-        .and(with_db(db))
-        .and_then(handler::modify_balance_v3)
-}
-
-fn sub_balance_v3(
-    db: Db,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("users" / i32 / "spend")
-        .and(warp::post())
-        .and(warp::body::content_length_limit(1024 * 32))
-        .and(warp::body::json())
-        .and(with_operation(handler::Operation::Sub))
-        .and(with_db(db))
-        .and_then(handler::modify_balance_v3)
-}
-
-fn buy_product_v3(
-    db: Db,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("users" / i32 / "buy")
-        .and(warp::post())
-        .and(warp::body::content_length_limit(1024 * 32))
-        .and(warp::body::json())
-        .and(with_db(db))
-        .and_then(handler::buy_product_v3)
-}
-
-fn with_db(db: Db) -> impl Filter<Extract = (Db,), Error = std::convert::Infallible> + Clone {
-    warp::any().map(move || db.clone())
-}
-
-fn with_operation(
-    opt: handler::Operation,
-) -> impl Filter<Extract = (handler::Operation,), Error = std::convert::Infallible> + Clone {
-    warp::any().map(move || opt)
-}
-
-mod handler {
-    use std::convert::{Infallible, TryInto};
-
-    use common::{User, UserCreateRequest, UserEditRequest};
-    use sea_orm::{entity::*, DbErr};
-    use warp::{hyper::StatusCode, reply};
-
-    use crate::{
-        entity::{
-            product,
-            user::{self, Entity as UserModel},
-        },
-        storage::Db,
+async fn create_user_v3(
+    Json(user): Json<UserCreateRequest>,
+    Extension(db): Extension<Db>,
+) -> Result<(StatusCode, Json<User>)> {
+    let user = user::ActiveModel {
+        name: Set(user.name),
+        email: Set(user.email),
+        balance: Set(user.balance.unwrap_or(0)),
+        active: Set(user.active.unwrap_or(true)),
+        audit: Set(user.audit.unwrap_or(false)),
+        redirect: Set(user.redirect.unwrap_or(true)),
+        avatar: user
+            .avatar
+            .map(Option::Some)
+            .map(ActiveValue::set)
+            .unwrap_or_else(ActiveValue::unset),
+        ..Default::default()
     };
 
-    /// returns all products
-    pub(super) async fn list_users_v3(db: Db) -> Result<impl warp::Reply, Infallible> {
-        let users = UserModel::find()
-            .all(&db.orm)
-            .await
-            .unwrap()
-            .into_iter()
-            .map(Into::into)
-            .collect::<Vec<User>>();
+    let user = user.save(&db.orm).await?.try_into()?;
+    Ok((StatusCode::CREATED, Json(user)))
+}
 
-        Ok(reply::json(&users))
-    }
+async fn delete_user_v3(Path(id): Path<i32>, Extension(db): Extension<Db>) -> Result<&'static str> {
+    UserModel::find_by_id(id)
+        .one(&db.orm)
+        .await?
+        .ok_or(AppError::NotFount)?
+        .into_active_model()
+        .delete(&db.orm)
+        .await?;
+    Ok("user deleted")
+}
 
-    pub(super) async fn create_user_v3(
-        user: UserCreateRequest,
-        db: Db,
-    ) -> Result<Box<dyn warp::Reply>, Infallible> {
-        let user = user::ActiveModel {
-            name: Set(user.name),
-            email: Set(user.email),
-            balance: Set(user.balance.unwrap_or(0)),
-            active: Set(user.active.unwrap_or(true)),
-            audit: Set(user.audit.unwrap_or(false)),
-            redirect: Set(user.redirect.unwrap_or(true)),
-            avatar: user
-                .avatar
-                .map(Option::Some)
-                .map(ActiveValue::set)
-                .unwrap_or_else(ActiveValue::unset),
-            ..Default::default()
-        };
+async fn list_user_v3(Path(id): Path<i32>, Extension(db): Extension<Db>) -> Result<Json<User>> {
+    let user = UserModel::find_by_id(id)
+        .one(&db.orm)
+        .await?
+        .ok_or(AppError::NotFount)?
+        .into();
+    Ok(Json(user))
+}
 
-        match user
-            .save(&db.orm)
-            .await
-            .map_err(Into::into)
-            .and_then::<User, _>(TryInto::try_into)
-        {
-            Ok(user) => Ok(Box::new(reply::with_status(
-                reply::json(&user),
-                StatusCode::CREATED,
-            ))),
-            Err(err) => {
-                // this is a ugly hack, but i'm not sure how to clean this up :(
-                if let Some(DbErr::Exec(msg)) = err.downcast_ref::<DbErr>() {
-                    if msg.contains("UNIQUE constraint failed: user.name") {
-                        return Ok(Box::new(reply::with_status(
-                            "a user with the same name already exists",
-                            StatusCode::CONFLICT,
-                        )));
-                    }
-                };
-                Ok(Box::new(reply::with_status(
-                    format!("server error: {}", err),
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                )))
-            }
-        }
-    }
+async fn edit_user_v3(
+    Path(id): Path<i32>,
+    Json(body): Json<UserEditRequest>,
+    Extension(db): Extension<Db>,
+) -> Result<Json<User>> {
+    let user = UserModel::find_by_id(id)
+        .one(&db.orm)
+        .await?
+        .ok_or(AppError::NotFount)?;
 
-    pub(super) async fn delete_user_v3(id: i32, db: Db) -> Result<impl warp::Reply, Infallible> {
-        match UserModel::find_by_id(id).one(&db.orm).await {
-            Ok(Some(user)) => {
-                let user: user::ActiveModel = user.into();
-                if user.delete(&db.orm).await.is_ok() {
-                    Ok(reply::with_status("user deleted", StatusCode::OK))
-                } else {
-                    Ok(reply::with_status(
-                        "server error",
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                    ))
-                }
-            }
-            Ok(None) => Ok(reply::with_status("id not existent", StatusCode::NOT_FOUND)),
-            Err(_) => Ok(reply::with_status(
-                "server error",
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )),
-        }
-    }
+    let mut user = user.into_active_model();
 
-    pub(super) async fn list_user_v3(id: i32, db: Db) -> Result<Box<dyn warp::Reply>, Infallible> {
-        match UserModel::find_by_id(id).one(&db.orm).await {
-            Ok(Some(user)) => {
-                let user: User = user.into();
-                Ok(Box::new(reply::json(&user)))
-            }
-            Ok(None) => Ok(Box::new(reply::with_status(
-                "id not existent",
-                StatusCode::NOT_FOUND,
-            ))),
-            Err(_) => Ok(Box::new(reply::with_status(
-                "server error",
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ))),
-        }
-    }
+    user.name = body.name.map(ActiveValue::set).unwrap_or(user.name);
+    user.email = body
+        .email
+        .map(Option::Some)
+        .map(ActiveValue::set)
+        .unwrap_or(user.email);
+    user.balance = body.balance.map(ActiveValue::set).unwrap_or(user.balance);
+    user.active = body.active.map(ActiveValue::set).unwrap_or(user.active);
+    user.audit = body.audit.map(ActiveValue::set).unwrap_or(user.audit);
+    user.redirect = body.redirect.map(ActiveValue::set).unwrap_or(user.redirect);
+    user.avatar = body
+        .avatar
+        .map(Option::Some)
+        .map(ActiveValue::set)
+        .unwrap_or(user.avatar);
 
-    pub(super) async fn edit_user_v3(
-        id: i32,
-        body: UserEditRequest,
-        db: Db,
-    ) -> Result<Box<dyn warp::Reply>, Infallible> {
-        match UserModel::find_by_id(id).one(&db.orm).await {
-            Ok(Some(user)) => {
-                let mut user = user.into_active_model();
+    let user = user.save(&db.orm).await?.try_into()?;
+    Ok(Json(user))
+}
 
-                user.name = body.name.map(ActiveValue::set).unwrap_or(user.name);
-                user.email = body
-                    .email
-                    .map(Option::Some)
-                    .map(ActiveValue::set)
-                    .unwrap_or(user.email);
-                user.balance = body.balance.map(ActiveValue::set).unwrap_or(user.balance);
-                user.active = body.active.map(ActiveValue::set).unwrap_or(user.active);
-                user.audit = body.audit.map(ActiveValue::set).unwrap_or(user.audit);
-                user.redirect = body.redirect.map(ActiveValue::set).unwrap_or(user.redirect);
-                user.avatar = body
-                    .avatar
-                    .map(Option::Some)
-                    .map(ActiveValue::set)
-                    .unwrap_or(user.avatar);
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum Operation {
+    Spend,
+    Deposit,
+}
 
-                if let Ok(user) = user.save(&db.orm).await {
-                    let user: User = user.try_into().unwrap();
-                    Ok(Box::new(reply::with_status(
-                        reply::json(&user),
-                        StatusCode::OK,
-                    )))
-                } else {
-                    Ok(Box::new(reply::with_status(
-                        "server error",
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                    )))
-                }
-            }
-            Ok(None) => Ok(Box::new(reply::with_status(
-                "id not existent",
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ))),
-            Err(_) => Ok(Box::new(reply::with_status(
-                "server error",
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ))),
-        }
-    }
+async fn modify_balance_v3(
+    Path((id, operation)): Path<(i32, Operation)>,
+    Json(amount): Json<i32>,
+    Extension(db): Extension<Db>,
+) -> Result<Json<User>> {
+    let user = UserModel::find_by_id(id)
+        .one(&db.orm)
+        .await?
+        .ok_or(AppError::NotFount)?;
+    let balance = user.balance;
+    let mut user = user.into_active_model();
+    user.balance = Set(match operation {
+        Operation::Deposit => balance + amount,
+        Operation::Spend => balance - amount,
+    });
 
-    #[derive(Debug, Clone, Copy)]
-    pub(super) enum Operation {
-        Add,
-        Sub,
-    }
+    let user: User = user.save(&db.orm).await?.try_into()?;
+    Ok(Json(user))
+}
 
-    pub(super) async fn modify_balance_v3(
-        id: i32,
-        amount: i32,
-        operation: Operation,
-        db: Db,
-    ) -> Result<Box<dyn warp::Reply>, Infallible> {
-        match UserModel::find_by_id(id).one(&db.orm).await {
-            Ok(Some(user)) => {
-                let balance = user.balance;
-                let mut user = user.into_active_model();
-                user.balance = Set(match operation {
-                    Operation::Add => balance + amount,
-                    Operation::Sub => balance - amount,
-                });
+async fn buy_product_v3(
+    Path(user_id): Path<i32>,
+    Json(product_id): Json<i32>,
+    Extension(db): Extension<Db>,
+) -> Result<Json<User>> {
+    let product = product::Entity::find_by_id(product_id)
+        .one(&db.orm)
+        .await?
+        .ok_or(AppError::NotFount)?;
 
-                if let Ok(user) = user.save(&db.orm).await {
-                    let user: User = user.try_into().unwrap();
-                    Ok(Box::new(reply::with_status(
-                        reply::json(&user),
-                        StatusCode::OK,
-                    )))
-                } else {
-                    Ok(Box::new(reply::with_status(
-                        "server error",
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                    )))
-                }
-            }
-            Ok(None) => Ok(Box::new(reply::with_status(
-                "id not existent",
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ))),
-            Err(_) => Ok(Box::new(reply::with_status(
-                "server error",
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ))),
-        }
-    }
+    let user = UserModel::find_by_id(user_id)
+        .one(&db.orm)
+        .await?
+        .ok_or(AppError::NotFount)?;
+    let balance = user.balance;
+    let mut user = user.into_active_model();
+    user.balance = Set(balance - product.price);
 
-    pub(super) async fn buy_product_v3(
-        user_id: i32,
-        product_id: i32,
-        db: Db,
-    ) -> Result<Box<dyn warp::Reply>, Infallible> {
-        let product = match product::Entity::find_by_id(product_id).one(&db.orm).await {
-            Ok(Some(product)) => product,
-            Ok(None) => {
-                return Ok(Box::new(reply::with_status(
-                    "id not existent",
-                    StatusCode::NOT_FOUND,
-                )))
-            }
-            Err(_) => {
-                return Ok(Box::new(reply::with_status(
-                    "server error",
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                )))
-            }
-        };
-        match UserModel::find_by_id(user_id).one(&db.orm).await {
-            Ok(Some(user)) => {
-                let balance = user.balance;
-                let mut user = user.into_active_model();
-                user.balance = Set(balance - product.price);
-
-                if let Ok(user) = user.save(&db.orm).await {
-                    let user: User = user.try_into().unwrap();
-                    Ok(Box::new(reply::with_status(
-                        reply::json(&user),
-                        StatusCode::OK,
-                    )))
-                } else {
-                    Ok(Box::new(reply::with_status(
-                        "server error",
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                    )))
-                }
-            }
-            Ok(None) => Ok(Box::new(reply::with_status(
-                "id not existent",
-                StatusCode::NOT_FOUND,
-            ))),
-            Err(_) => Ok(Box::new(reply::with_status(
-                "server error",
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ))),
-        }
-    }
+    let user: User = user.save(&db.orm).await?.try_into()?;
+    Ok(Json(user))
 }

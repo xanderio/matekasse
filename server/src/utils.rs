@@ -1,3 +1,45 @@
+use axum::{http::StatusCode, response::IntoResponse, Json};
+use sea_orm::DbErr;
+use serde_json::json;
+
+pub(crate) type Result<T> = std::result::Result<T, AppError>;
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum AppError {
+    #[error("database error")]
+    DbErr(#[from] DbErr),
+    #[error("already exists")]
+    Conflict,
+    #[error("not found")]
+    NotFount,
+    #[error("{0:?}")]
+    Error(#[from] eyre::Error),
+}
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> axum::http::Response<axum::body::BoxBody> {
+        // special case unique constraint failure and return 409
+        if let AppError::DbErr(DbErr::Exec(ref msg)) = self {
+            // this is a ugly hack, but i'm not sure how to clean this up :(
+            if msg.contains("UNIQUE constraint failed") {
+                return AppError::Conflict.into_response();
+            }
+        };
+
+        let message = format!("{:?}", self);
+        let status = match self {
+            AppError::DbErr(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Conflict => StatusCode::CONFLICT,
+            AppError::NotFount => StatusCode::NOT_FOUND,
+            AppError::Error(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+
+        let body = Json(json!({ "status": "error", "message": message }));
+
+        (status, body).into_response()
+    }
+}
+
 /// Takes a list of handler expressions and `or`s them together
 /// in a balanced tree. That is, instead of `a.or(b).or(c).or(d)`,
 /// it produces `(a.or(b)).or(c.or(d))`, thus nesting the types

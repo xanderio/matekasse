@@ -1,5 +1,5 @@
+use axum::{AddExtensionLayer, Router};
 use eyre::Result;
-use warp::Filter;
 
 mod config;
 mod entity;
@@ -15,16 +15,20 @@ async fn main() -> Result<()> {
 
     let db = storage::open_db(config.storage.database.clone()).await?;
 
-    let api = warp::path("api");
+    let api_routes = Router::new()
+        .nest("/info", server::router())
+        .nest("/users", user::router())
+        .nest("/products", products::router());
 
-    let products = api.and(products::products(db.clone(), config.clone()));
-    let users = api.and(user::users(db.clone()));
-    let server = api.and(server::server(config.default_product.clone()));
-
-    let routes = crate::balanced_or_tree!(products, users, server);
+    let app = Router::new()
+        .nest("/api/v3", api_routes)
+        .layer(AddExtensionLayer::new(config.clone()))
+        .layer(AddExtensionLayer::new(db.clone()));
 
     println!("listening on {}", config.http.listen);
-    warp::serve(routes).run(config.http.listen).await;
+    axum::Server::bind(&config.http.listen)
+        .serve(app.into_make_service())
+        .await?;
 
     Ok(())
 }

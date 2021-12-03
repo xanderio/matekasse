@@ -1,48 +1,21 @@
-use warp::Filter;
+use axum::{extract::Extension, routing::get, Json, Router};
+use common::ServerInfo;
 
-use crate::config::DefaultProductConfig;
+use crate::config::Config;
 
-pub fn server(
-    default_product: DefaultProductConfig,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path("v3").and(info_v1(default_product))
+pub fn router() -> Router {
+    Router::new().route("/", get(info_v3))
 }
 
 /// global server information and capabilities
 /// API: https://space-market.github.io/API/swagger-ui/#!/server/get_info
-fn info_v1(
-    default_product: DefaultProductConfig,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path("info")
-        .and(warp::get())
-        .and(with_default_product(default_product))
-        .and_then(handler::info_v1)
-}
-
-fn with_default_product(
-    product: DefaultProductConfig,
-) -> impl Filter<Extract = (DefaultProductConfig,), Error = std::convert::Infallible> + Clone {
-    warp::any().map(move || product.clone())
-}
-
-mod handler {
-    use common::ServerInfo;
-    use std::convert::Infallible;
-
-    use crate::config::DefaultProductConfig;
-
-    pub(super) async fn info_v1(
-        default_product: DefaultProductConfig,
-    ) -> Result<impl warp::Reply, Infallible> {
-        let info = ServerInfo {
-            version: "3.0.0".to_string(),
-            currency: "€".to_string(),
-            decimal_seperator: Some(",".to_string()),
-            energy: "kJ".to_string(),
-            default_product: default_product.into(),
-            ..Default::default()
-        };
-
-        Ok(warp::reply::json(&info))
-    }
+pub(super) async fn info_v3(Extension(config): Extension<Config>) -> Json<ServerInfo> {
+    Json(ServerInfo {
+        version: "3.0.0".to_string(),
+        currency: "€".to_string(),
+        decimal_seperator: Some(",".to_string()),
+        energy: "kJ".to_string(),
+        default_product: config.default_product.into(),
+        ..Default::default()
+    })
 }
