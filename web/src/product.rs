@@ -1,58 +1,89 @@
-use common::Product;
+use anyhow::Result;
+use common::{Product, User};
 use gloo_events::EventListener;
 use ybc::{TileCtx, TileSize};
-use yew::{prelude::*, web_sys::HtmlElement};
+use yew::{prelude::*, services::fetch::FetchTask, web_sys::HtmlElement};
 
-use crate::agents::{
-    product::{Output, ProductStore},
-    user::{Input as UserInput, UserStore},
-};
+use crate::request::{buy_product, fetch_all_products};
 
 pub struct ProductGrid {
     link: ComponentLink<Self>,
-    _store: Box<dyn Bridge<ProductStore>>,
-    user_store: Box<dyn Bridge<UserStore>>,
+    props: Props,
     products: Vec<Product>,
+    fetch_task: Option<FetchTask>,
 }
 
-pub enum GridMsg {
-    Store(Output),
-    UserStore,
-    Select(Product),
+pub enum Msg {
+    FetchedProducts(Result<Vec<Product>>),
+    ClickProduct(Product),
+    BuyProduct(Result<User>),
+}
+
+#[derive(Debug, Clone, PartialEq, Properties)]
+pub struct Props {
+    pub user: User,
+    pub on_change: Callback<User>,
 }
 
 impl Component for ProductGrid {
-    type Message = GridMsg;
+    type Message = Msg;
 
-    type Properties = ();
+    type Properties = Props;
 
-    fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let task = fetch_all_products(link.callback(Msg::FetchedProducts)).unwrap();
         Self {
-            link: link.clone(),
-            _store: ProductStore::bridge(link.callback(GridMsg::Store)),
-            user_store: UserStore::bridge(link.callback(|_| GridMsg::UserStore)),
+            link,
+            props,
             products: Vec::new(),
+            fetch_task: Some(task),
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            GridMsg::Store(Output::Update(products)) => self.products = products,
-            GridMsg::UserStore => {}
-            GridMsg::Select(product) => {
+            Msg::FetchedProducts(Ok(products)) => {
+                self.products = products;
+                true
+            }
+            Msg::FetchedProducts(Err(e)) => {
+                log::error!("{}", e);
+                false
+            }
+            Msg::BuyProduct(Ok(user)) => {
+                self.props.on_change.emit(user);
+                false
+            }
+            Msg::BuyProduct(Err(e)) => {
+                log::error!("{}", e);
+                false
+            }
+            Msg::ClickProduct(product) => {
                 log::info!("{:?}", &product);
-                self.user_store.send(UserInput::Buy(product));
+                self.fetch_task = Some(
+                    buy_product(
+                        &self.props.user,
+                        &product,
+                        self.link.callback(Msg::BuyProduct),
+                    )
+                    .unwrap(),
+                );
+                false
             }
         }
-        true
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
-        false
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        if self.props != props {
+            self.props = props;
+            true
+        } else {
+            false
+        }
     }
 
     fn view(&self) -> Html {
-        let cb = self.link.callback(GridMsg::Select);
+        let cb = self.link.callback(Msg::ClickProduct);
         html! {
             <>
                 <ybc::Tile vertical=true>

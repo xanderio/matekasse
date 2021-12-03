@@ -1,6 +1,5 @@
 use std::{fmt::Display, panic};
 
-use agents::{product::ProductStore, user::UserStore};
 use common::User;
 use ybc::{TileCtx, TileSize};
 use yew::prelude::*;
@@ -9,14 +8,13 @@ mod agents;
 mod inventory;
 mod menu;
 mod product;
+mod request;
 mod user;
 
 pub struct App {
     link: ComponentLink<Self>,
     mode: Mode,
     loading: bool,
-    _product_store: Box<dyn Bridge<ProductStore>>,
-    _user_store: Box<dyn Bridge<UserStore>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -36,8 +34,7 @@ impl Display for Mode {
 
 pub enum Msg {
     MenuAction(menu::Action),
-    ProductStore(agents::product::Output),
-    UserStore(agents::user::Output),
+    UserSelected(User),
 }
 
 impl Component for App {
@@ -46,11 +43,10 @@ impl Component for App {
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
         Self {
-            link: link.clone(),
+            link,
             mode: Mode::User,
-            loading: true,
-            _user_store: UserStore::bridge(link.callback(Msg::UserStore)),
-            _product_store: ProductStore::bridge(link.callback(Msg::ProductStore)),
+            //TODO: agent to keep this state?
+            loading: false,
         }
     }
 
@@ -60,20 +56,10 @@ impl Component for App {
                 self.mode = Mode::User;
                 true
             }
-            Msg::ProductStore(agents::product::Output::Update(products)) => {
-                self.loading = products.is_empty();
-                true
-            }
-            Msg::UserStore(agents::user::Output::Current(Some(user))) => {
-                log::info!("{:?}", &user);
+            Msg::UserSelected(user) => {
                 self.mode = Mode::Product(user);
                 true
             }
-            Msg::UserStore(agents::user::Output::Current(None)) => {
-                self.mode = Mode::User;
-                true
-            }
-            Msg::UserStore(_) => false,
         }
     }
 
@@ -83,7 +69,11 @@ impl Component for App {
 
     fn view(&self) -> Html {
         let pl_active = if self.loading { "is-active" } else { "" };
+
         let menu_cb = self.link.callback(Msg::MenuAction);
+        let user_cb = self.link.callback(Msg::UserSelected);
+        let product_cb = self.link.callback(Msg::UserSelected);
+
         html! {
             <>
                 <div class=classes!("pageloader", "is-bottom-to-top", pl_active)>
@@ -94,9 +84,9 @@ impl Component for App {
                         <ybc::Tile ctx=TileCtx::Ancestor>
                             <menu::Menu mode=self.mode.clone() on_action=menu_cb/>
                             <ybc::Tile size=TileSize::Nine>
-                            {match self.mode {
-                                Mode::Product(_) => html!{<product::ProductGrid/>},
-                                Mode::User => html!{<user::UserGrid/>}
+                            {match self.mode.clone() {
+                                Mode::Product(user) => html!{<product::ProductGrid user=user on_change=product_cb/>},
+                                Mode::User => html!{<user::UserGrid on_selected=user_cb />}
                             }}
                             </ybc::Tile>
                         </ybc::Tile>

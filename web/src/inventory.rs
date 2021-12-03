@@ -4,7 +4,7 @@ use yew::{agent::Dispatcher, prelude::*};
 
 #[derive(Debug)]
 pub struct Inventory {
-    link: ComponentLink<Self>,
+    _link: ComponentLink<Self>,
 }
 
 impl Component for Inventory {
@@ -13,7 +13,7 @@ impl Component for Inventory {
     type Properties = ();
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        Self { link }
+        Self { _link: link }
     }
 
     fn update(&mut self, _msg: Self::Message) -> ShouldRender {

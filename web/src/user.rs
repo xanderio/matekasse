@@ -1,49 +1,71 @@
+use anyhow::Error;
 use common::User;
 use gloo_events::EventListener;
 use ybc::{TileCtx, TileSize};
-use yew::{prelude::*, web_sys::HtmlElement};
+use yew::{prelude::*, services::fetch::FetchTask, web_sys::HtmlElement};
 
-use crate::agents::user::{Input, Output, UserStore};
+use crate::request::fetch_all_users;
 
 pub struct UserGrid {
     link: ComponentLink<Self>,
-    _store: Box<dyn Bridge<UserStore>>,
+    props: Props,
+    _fetch_task: Option<FetchTask>,
     users: Vec<User>,
 }
 
-pub enum GridMsg {
-    Store(Output),
+pub enum Msg {
+    FetchedUsers(Result<Vec<User>, Error>),
     Select(User),
 }
 
+#[derive(Debug, Clone, PartialEq, Properties)]
+pub struct Props {
+    pub on_selected: Callback<User>,
+}
+
 impl Component for UserGrid {
-    type Message = GridMsg;
+    type Message = Msg;
 
-    type Properties = ();
+    type Properties = Props;
 
-    fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let task = fetch_all_users(link.callback(Msg::FetchedUsers)).expect("unable to build task");
         Self {
-            link: link.clone(),
-            _store: UserStore::bridge(link.callback(GridMsg::Store)),
+            link,
+            props,
             users: Vec::new(),
+            _fetch_task: Some(task),
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            GridMsg::Store(Output::Update(users)) => self.users = users,
-            GridMsg::Store(_) => {}
-            GridMsg::Select(user) => self._store.send(Input::ChangeUser(user)),
+            Msg::FetchedUsers(Ok(users)) => {
+                self.users = users;
+                true
+            }
+            Msg::FetchedUsers(Err(e)) => {
+                log::error!("{}", e);
+                false
+            }
+            Msg::Select(user) => {
+                self.props.on_selected.emit(user);
+                false
+            }
         }
-        true
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
-        false
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        if self.props != props {
+            self.props = props;
+            true
+        } else {
+            false
+        }
     }
 
     fn view(&self) -> Html {
-        let cb = self.link.callback(GridMsg::Select);
+        let cb = self.link.callback(Msg::Select);
         html! {
             <>
                 <ybc::Tile vertical=true>
