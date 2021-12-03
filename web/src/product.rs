@@ -3,16 +3,21 @@ use gloo_events::EventListener;
 use ybc::{TileCtx, TileSize};
 use yew::{prelude::*, web_sys::HtmlElement};
 
-use crate::agents::product::{Output, ProductStore};
+use crate::agents::{
+    product::{Output, ProductStore},
+    user::{Input as UserInput, UserStore},
+};
 
 pub struct ProductGrid {
     link: ComponentLink<Self>,
     _store: Box<dyn Bridge<ProductStore>>,
+    user_store: Box<dyn Bridge<UserStore>>,
     products: Vec<Product>,
 }
 
 pub enum GridMsg {
     Store(Output),
+    UserStore,
     Select(Product),
 }
 
@@ -25,6 +30,7 @@ impl Component for ProductGrid {
         Self {
             link: link.clone(),
             _store: ProductStore::bridge(link.callback(GridMsg::Store)),
+            user_store: UserStore::bridge(link.callback(|_| GridMsg::UserStore)),
             products: Vec::new(),
         }
     }
@@ -32,7 +38,11 @@ impl Component for ProductGrid {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             GridMsg::Store(Output::Update(products)) => self.products = products,
-            GridMsg::Select(product) => log::info!("{:?}", product),
+            GridMsg::UserStore => {}
+            GridMsg::Select(product) => {
+                log::info!("{:?}", &product);
+                self.user_store.send(UserInput::Buy(product));
+            }
         }
         true
     }

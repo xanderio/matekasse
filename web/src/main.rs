@@ -65,6 +65,7 @@ impl Component for App {
                 true
             }
             Msg::UserStore(agents::user::Output::Current(Some(user))) => {
+                log::info!("{:?}", &user);
                 self.mode = Mode::Product(user);
                 true
             }

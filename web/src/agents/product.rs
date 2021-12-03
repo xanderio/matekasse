@@ -63,9 +63,7 @@ impl Agent for ProductStore {
         }
     }
 
-    fn handle_input(&mut self, _msg: Self::Input, _id: HandlerId) {
-        todo!()
-    }
+    fn handle_input(&mut self, _msg: Self::Input, _id: HandlerId) {}
 
     fn connected(&mut self, id: HandlerId) {
         if !self.products.is_empty() {
