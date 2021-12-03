@@ -4,25 +4,32 @@ use yew::prelude::*;
 use crate::Mode;
 
 pub struct Menu {
-    _link: ComponentLink<Self>,
+    link: ComponentLink<Self>,
     props: Props,
 }
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
     pub mode: Mode,
+    pub on_action: Callback<Action>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Action {
+    ChangeAccount,
 }
 
 impl Component for Menu {
-    type Message = ();
+    type Message = Action;
 
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        Self { _link: link, props }
+        Self { link, props }
     }
 
-    fn update(&mut self, _msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+        self.props.on_action.emit(msg);
         false
     }
 
@@ -36,6 +43,8 @@ impl Component for Menu {
     }
 
     fn view(&self) -> Html {
+        let btn_classes = classes!("is-fullwidth", "is-medium", "is-primary", "mb-2");
+        let account_chance = self.link.callback(|_| Action::ChangeAccount);
         html! {
             <ybc::Tile ctx=TileCtx::Parent vertical=true>
                 <ybc::Card classes=classes!("is-child")>
@@ -60,10 +69,11 @@ impl Component for Menu {
                                 </ybc::Container>
                             </ybc::MediaContent>
                         </ybc::Media>
-                        <ybc::Button classes=classes!("is-fullwidth", "is-medium", "is-primary", "mb-2")>{"Einzahlen"}</ybc::Button>
-                        <ybc::Button classes=classes!("is-fullwidth", "is-medium", "is-primary", "mb-2")>{"Account bearbeiten"}</ybc::Button>
-                        <ybc::Button classes=classes!("is-fullwidth", "is-medium", "is-primary", "mb-2")>{"Produkte bearbeiten"}</ybc::Button>
-                        <ybc::Button classes=classes!("is-fullwidth", "is-medium", "is-primary", "mb-2")>{"Neues Produkt"}</ybc::Button>
+                        <ybc::Button classes=btn_classes.clone() onclick=account_chance>{"Account wechseln"}</ybc::Button>
+                        <ybc::Button classes=btn_classes.clone()>{"Einzahlen"}</ybc::Button>
+                        <ybc::Button classes=btn_classes.clone()>{"Account bearbeiten"}</ybc::Button>
+                        <ybc::Button classes=btn_classes.clone()>{"Produkte bearbeiten"}</ybc::Button>
+                        <ybc::Button classes=btn_classes>{"Neues Produkt"}</ybc::Button>
                     </ybc::CardContent>
                 </ybc::Card>
             </ybc::Tile>

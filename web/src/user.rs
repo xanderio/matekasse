@@ -1,22 +1,22 @@
-use common::Product;
+use common::User;
 use gloo_events::EventListener;
 use ybc::{TileCtx, TileSize};
 use yew::{prelude::*, web_sys::HtmlElement};
 
-use crate::agents::product::{Output, ProductStore};
+use crate::agents::user::{Output, UserStore};
 
-pub struct ProductGrid {
+pub struct UserGrid {
     link: ComponentLink<Self>,
-    _store: Box<dyn Bridge<ProductStore>>,
-    products: Vec<Product>,
+    _store: Box<dyn Bridge<UserStore>>,
+    users: Vec<User>,
 }
 
 pub enum GridMsg {
     Store(Output),
-    Select(Product),
+    Select(User),
 }
 
-impl Component for ProductGrid {
+impl Component for UserGrid {
     type Message = GridMsg;
 
     type Properties = ();
@@ -24,15 +24,15 @@ impl Component for ProductGrid {
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
         Self {
             link: link.clone(),
-            _store: ProductStore::bridge(link.callback(GridMsg::Store)),
-            products: Vec::new(),
+            _store: UserStore::bridge(link.callback(GridMsg::Store)),
+            users: Vec::new(),
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            GridMsg::Store(Output::Update(products)) => self.products = products,
-            GridMsg::Select(product) => log::info!("{:?}", product),
+            GridMsg::Store(Output::Update(users)) => self.users = users,
+            GridMsg::Select(users) => log::info!("{:?}", users),
         }
         true
     }
@@ -46,11 +46,11 @@ impl Component for ProductGrid {
         html! {
             <>
                 <ybc::Tile vertical=true>
-                { for self.products.as_slice().chunks(3).map(|c| { html! {
+                { for self.users.as_slice().chunks(3).map(|c| { html! {
                     <ybc::Tile>
                     {for c.iter().map(|p| html!{
                         <ybc::Tile ctx=TileCtx::Parent size=TileSize::Four>
-                            <ProductCard item=p.clone() onclick=cb.clone() />
+                            <UserCard item=p.clone() onclick=cb.clone() />
                         </ybc::Tile>
                     })}
                     </ybc::Tile>
@@ -61,23 +61,23 @@ impl Component for ProductGrid {
     }
 }
 
-pub struct ProductCard {
+pub struct UserCard {
     link: ComponentLink<Self>,
-    props: ProductCardProps,
+    props: UserCardProps,
     node: NodeRef,
     onclick_listener: Option<EventListener>,
 }
 
 #[derive(Debug, Clone, Properties, PartialEq)]
-pub struct ProductCardProps {
-    item: Product,
-    onclick: Callback<Product>,
+pub struct UserCardProps {
+    item: User,
+    onclick: Callback<User>,
 }
 
-impl Component for ProductCard {
+impl Component for UserCard {
     type Message = ();
 
-    type Properties = ProductCardProps;
+    type Properties = UserCardProps;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         Self {
@@ -109,7 +109,6 @@ impl Component for ProductCard {
               ctx=TileCtx::Child
               classes=classes!("box", "is-clickable", "is-unselectable")>
                 <ybc::Title>{self.props.item.name.clone()}</ybc::Title>
-                <ybc::Subtitle>{self.format_price()}</ybc::Subtitle>
             </ybc::Tile>
         }
     }
@@ -124,11 +123,5 @@ impl Component for ProductCard {
             let listener = EventListener::new(&element, "click", move |e| cb.emit(e.clone()));
             self.onclick_listener = Some(listener);
         }
-    }
-}
-
-impl ProductCard {
-    fn format_price(&self) -> String {
-        format!("{0:.2}€", self.props.item.price as f64 / 100.0)
     }
 }

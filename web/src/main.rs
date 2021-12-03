@@ -1,6 +1,6 @@
 use std::{fmt::Display, panic};
 
-use agents::ProductStore;
+use agents::product::ProductStore;
 use ybc::{TileCtx, TileSize};
 use yew::prelude::*;
 
@@ -8,8 +8,10 @@ mod agents;
 mod inventory;
 mod menu;
 mod product;
+mod user;
 
 pub struct App {
+    link: ComponentLink<Self>,
     mode: Mode,
     loading: bool,
     _store: Box<dyn Bridge<ProductStore>>,
@@ -31,7 +33,8 @@ impl Display for Mode {
 }
 
 pub enum Msg {
-    Store(agents::Output),
+    MenuAction(menu::Action),
+    ProductStore(agents::product::Output),
 }
 
 impl Component for App {
@@ -40,15 +43,20 @@ impl Component for App {
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
         Self {
+            link: link.clone(),
             mode: Mode::Product,
             loading: true,
-            _store: ProductStore::bridge(link.callback(Msg::Store)),
+            _store: ProductStore::bridge(link.callback(Msg::ProductStore)),
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Store(agents::Output::Update(products)) => {
+            Msg::MenuAction(menu::Action::ChangeAccount) => {
+                self.mode = Mode::User;
+                true
+            }
+            Msg::ProductStore(agents::product::Output::Update(products)) => {
                 self.loading = products.is_empty();
                 true
             }
@@ -61,6 +69,7 @@ impl Component for App {
 
     fn view(&self) -> Html {
         let pl_active = if self.loading { "is-active" } else { "" };
+        let menu_cb = self.link.callback(Msg::MenuAction);
         html! {
             <>
                 <div class=classes!("pageloader", "is-bottom-to-top", pl_active)>
@@ -69,11 +78,11 @@ impl Component for App {
                 <ybc::Section>
                     <ybc::Container>
                         <ybc::Tile ctx=TileCtx::Ancestor>
-                            <menu::Menu mode=self.mode/>
+                            <menu::Menu mode=self.mode on_action=menu_cb/>
                             <ybc::Tile size=TileSize::Nine>
                             {match self.mode {
                                 Mode::Product => html!{<product::ProductGrid/>},
-                                Mode::User => html!{<product::ProductGrid/>}
+                                Mode::User => html!{<user::UserGrid/>}
                             }}
                             </ybc::Tile>
                         </ybc::Tile>
