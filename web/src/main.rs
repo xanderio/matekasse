@@ -1,6 +1,7 @@
 use std::{fmt::Display, panic};
 
-use agents::product::ProductStore;
+use agents::{product::ProductStore, user::UserStore};
+use common::User;
 use ybc::{TileCtx, TileSize};
 use yew::prelude::*;
 
@@ -14,19 +15,20 @@ pub struct App {
     link: ComponentLink<Self>,
     mode: Mode,
     loading: bool,
-    _store: Box<dyn Bridge<ProductStore>>,
+    _product_store: Box<dyn Bridge<ProductStore>>,
+    _user_store: Box<dyn Bridge<UserStore>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Mode {
-    Product,
+    Product(User),
     User,
 }
 
 impl Display for Mode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Mode::Product => write!(f, "Einkaufen"),
+            Mode::Product(_) => write!(f, "Einkaufen"),
             Mode::User => write!(f, "User"),
         }
     }
@@ -35,6 +37,7 @@ impl Display for Mode {
 pub enum Msg {
     MenuAction(menu::Action),
     ProductStore(agents::product::Output),
+    UserStore(agents::user::Output),
 }
 
 impl Component for App {
@@ -44,9 +47,10 @@ impl Component for App {
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
         Self {
             link: link.clone(),
-            mode: Mode::Product,
+            mode: Mode::User,
             loading: true,
-            _store: ProductStore::bridge(link.callback(Msg::ProductStore)),
+            _user_store: UserStore::bridge(link.callback(Msg::UserStore)),
+            _product_store: ProductStore::bridge(link.callback(Msg::ProductStore)),
         }
     }
 
@@ -60,6 +64,15 @@ impl Component for App {
                 self.loading = products.is_empty();
                 true
             }
+            Msg::UserStore(agents::user::Output::Current(Some(user))) => {
+                self.mode = Mode::Product(user);
+                true
+            }
+            Msg::UserStore(agents::user::Output::Current(None)) => {
+                self.mode = Mode::User;
+                true
+            }
+            Msg::UserStore(_) => false,
         }
     }
 
@@ -78,10 +91,10 @@ impl Component for App {
                 <ybc::Section>
                     <ybc::Container>
                         <ybc::Tile ctx=TileCtx::Ancestor>
-                            <menu::Menu mode=self.mode on_action=menu_cb/>
+                            <menu::Menu mode=self.mode.clone() on_action=menu_cb/>
                             <ybc::Tile size=TileSize::Nine>
                             {match self.mode {
-                                Mode::Product => html!{<product::ProductGrid/>},
+                                Mode::Product(_) => html!{<product::ProductGrid/>},
                                 Mode::User => html!{<user::UserGrid/>}
                             }}
                             </ybc::Tile>

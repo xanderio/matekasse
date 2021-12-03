@@ -14,6 +14,7 @@ use yew::{
 #[derive(Debug)]
 pub struct UserStore {
     link: AgentLink<Self>,
+    current_user: Option<User>,
     users: Vec<User>,
     subscribers: HashSet<HandlerId>,
     fetch_task: Option<FetchTask>,
@@ -24,7 +25,14 @@ pub enum Msg {
 }
 
 #[non_exhaustive]
+pub enum Input {
+    ChangeUser(User),
+}
+
+#[non_exhaustive]
+#[derive(Debug, Clone)]
 pub enum Output {
+    Current(Option<User>),
     Update(Vec<User>),
 }
 
@@ -33,7 +41,7 @@ impl Agent for UserStore {
 
     type Message = Msg;
 
-    type Input = ();
+    type Input = Input;
 
     type Output = Output;
 
@@ -41,6 +49,7 @@ impl Agent for UserStore {
         let mut agent = Self {
             link,
             users: Vec::new(),
+            current_user: None,
             subscribers: HashSet::new(),
             fetch_task: None,
         };
@@ -62,14 +71,22 @@ impl Agent for UserStore {
         }
     }
 
-    fn handle_input(&mut self, _msg: Self::Input, _id: HandlerId) {
-        todo!()
+    fn handle_input(&mut self, msg: Self::Input, _id: HandlerId) {
+        match msg {
+            Input::ChangeUser(user) => {
+                self.current_user = Some(user);
+                for id in self.subscribers.iter() {
+                    self.link
+                        .respond(*id, Output::Current(self.current_user.clone()))
+                }
+            }
+        }
     }
 
     fn connected(&mut self, id: HandlerId) {
-        if !self.users.is_empty() {
-            self.link.respond(id, Output::Update(self.users.clone()))
-        }
+        self.link.respond(id, Output::Update(self.users.clone()));
+        self.link
+            .respond(id, Output::Current(self.current_user.clone()));
         self.subscribers.insert(id);
     }
 

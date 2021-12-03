@@ -3,7 +3,7 @@ use gloo_events::EventListener;
 use ybc::{TileCtx, TileSize};
 use yew::{prelude::*, web_sys::HtmlElement};
 
-use crate::agents::user::{Output, UserStore};
+use crate::agents::user::{Input, Output, UserStore};
 
 pub struct UserGrid {
     link: ComponentLink<Self>,
@@ -32,7 +32,8 @@ impl Component for UserGrid {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             GridMsg::Store(Output::Update(users)) => self.users = users,
-            GridMsg::Select(users) => log::info!("{:?}", users),
+            GridMsg::Store(_) => {}
+            GridMsg::Select(user) => self._store.send(Input::ChangeUser(user)),
         }
         true
     }
