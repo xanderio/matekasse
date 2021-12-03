@@ -320,3 +320,9 @@ pub struct UserEditRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub avatar: Option<i32>,
 }
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct FundsTransferRequest {
+    pub amount: i32,
+    pub receiver: i32,
+}

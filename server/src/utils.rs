@@ -1,5 +1,6 @@
 use axum::{http::StatusCode, response::IntoResponse, Json};
-use sea_orm::DbErr;
+use eyre::Report;
+use sea_orm::{DbErr, TransactionError};
 use serde_json::json;
 
 pub(crate) type Result<T> = std::result::Result<T, AppError>;
@@ -8,12 +9,26 @@ pub(crate) type Result<T> = std::result::Result<T, AppError>;
 pub(crate) enum AppError {
     #[error("database error")]
     DbErr(#[from] DbErr),
+    #[error(transparent)]
+    Transaction(eyre::Report),
     #[error("already exists")]
     Conflict,
     #[error("not found")]
     NotFount,
     #[error("{0:?}")]
     Error(#[from] eyre::Error),
+}
+
+impl<T> From<TransactionError<T>> for AppError
+where
+    T: std::error::Error + Send + Sync + 'static,
+{
+    fn from(err: TransactionError<T>) -> Self {
+        match err {
+            TransactionError::Connection(err) => AppError::DbErr(err),
+            TransactionError::Transaction(err) => AppError::Transaction(Report::new(err)),
+        }
+    }
 }
 
 impl IntoResponse for AppError {
@@ -29,6 +44,7 @@ impl IntoResponse for AppError {
         let message = format!("{:?}", self);
         let status = match self {
             AppError::DbErr(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Transaction(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Conflict => StatusCode::CONFLICT,
             AppError::NotFount => StatusCode::NOT_FOUND,
             AppError::Error(_) => StatusCode::INTERNAL_SERVER_ERROR,

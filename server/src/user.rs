@@ -7,8 +7,8 @@ use serde::Deserialize;
 
 use std::convert::TryInto;
 
-use common::{User, UserCreateRequest, UserEditRequest};
-use sea_orm::entity::*;
+use common::{FundsTransferRequest, User, UserCreateRequest, UserEditRequest};
+use sea_orm::{entity::*, ConnectionTrait};
 
 use crate::{
     entity::{
@@ -24,6 +24,7 @@ pub fn router() -> Router {
         .route("/", routing::get(get_all).post(create))
         .route("/:id/:operation", routing::post(modify_balance))
         .route("/:id/buy", routing::post(buy))
+        .route("/:id/transfer", routing::post(transfer))
         .route("/:id", routing::get(get).patch(edit).delete(delete))
 }
 
@@ -161,4 +162,39 @@ async fn buy(
 
     let user: User = user.save(&db.orm).await?.try_into()?;
     Ok(Json(user))
+}
+
+async fn transfer(
+    Path(sender): Path<i32>,
+    Json(request): Json<FundsTransferRequest>,
+    Extension(db): Extension<Db>,
+) -> Result<()> {
+    Ok(db
+        .orm
+        .transaction::<_, (), AppError>(|txn| {
+            Box::pin(async move {
+                let sender = UserModel::find_by_id(sender)
+                    .one(txn)
+                    .await?
+                    .ok_or(AppError::NotFount)?;
+                let s_balance = sender.balance;
+                let mut sender = sender.into_active_model();
+
+                let receiver = UserModel::find_by_id(request.receiver)
+                    .one(txn)
+                    .await?
+                    .ok_or(AppError::NotFount)?;
+                let r_balance = receiver.balance;
+                let mut receiver = receiver.into_active_model();
+
+                sender.balance = Set(s_balance - request.amount);
+                receiver.balance = Set(r_balance + request.amount);
+
+                sender.save(txn).await?;
+                receiver.save(txn).await?;
+
+                Ok(())
+            })
+        })
+        .await?)
 }
