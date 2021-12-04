@@ -1,7 +1,6 @@
-use ybc::{ImageSize, TileCtx};
 use yew::prelude::*;
 
-use crate::Mode;
+use crate::{modal::account::AccountEditor, Mode};
 
 pub struct Menu {
     link: ComponentLink<Self>,
@@ -52,63 +51,66 @@ impl Component for Menu {
     }
 
     fn view(&self) -> Html {
-        let btn_classes = classes!("is-fullwidth", "is-medium", "is-primary", "mb-2");
+        let btn_classes = classes!("button", "is-fullwidth", "is-medium", "is-primary", "mb-2");
         let account_chance = self.link.callback(|_| Msg::Action(Action::ChangeAccount));
 
         let user = if let Mode::Product(user) = &self.props.mode {
             html! {
-                <ybc::Media>
-                    <ybc::MediaLeft>
-                        <ybc::Image size=ImageSize::Is64x64>
+                <div class=classes!("media")>
+                    <div class=classes!("media-left")>
+                        <figure class=classes!("image", "is-64x64")>
                             <img class=classes!("is-rounded") src={"https://chaos.social/system/accounts/avatars/000/015/422/original/AD8QQFNGKKJK.png"}/>
-                        </ybc::Image>
-                    </ybc::MediaLeft>
-                    <ybc::MediaContent>
-                        <ybc::Container>
-                            <ybc::Title>
+                        </figure>
+                    </div>
+                    <div class=classes!("media-content")>
+                        <div class=classes!("container")>
+                            <h3 class=classes!("title")>
                                 {user.name.clone()}
-                            </ybc::Title>
-                            <ybc::Subtitle classes=classes!("is-4")>
+                            </h3>
+                            <h3 class=classes!("subtitle", "is-4")>
                                 {self.format_balance()}
-                            </ybc::Subtitle>
-                        </ybc::Container>
-                    </ybc::MediaContent>
-                </ybc::Media>
+                            </h3>
+                        </div>
+                    </div>
+                </div>
             }
         } else {
             html! {
-                <ybc::Title>{"Account wählen"}</ybc::Title>
+                <h3 class=classes!("title")>{"Account wählen"}</h3>
             }
         };
 
         let buttons = if self.props.mode == Mode::User {
+            let trigger = html! {
+                    <button class=btn_classes>{"Neuer Account"}</button>
+            };
             html! {
-                    <ybc::Button classes=btn_classes>{"Neuer Account"}</ybc::Button>
+                <AccountEditor user=None trigger=trigger/>
             }
         } else {
             html! {
                 <>
-                    <ybc::Button classes=btn_classes.clone() onclick=account_chance>{"Account wechseln"}</ybc::Button>
-                    <ybc::Button classes=btn_classes.clone()>{"Einzahlen"}</ybc::Button>
-                    <ybc::Button classes=btn_classes.clone()>{"Account bearbeiten"}</ybc::Button>
-                    <ybc::Button classes=btn_classes.clone()>{"Produkte bearbeiten"}</ybc::Button>
-                    <ybc::Button classes=btn_classes>{"Neues Produkt"}</ybc::Button>
+                    <button class=btn_classes.clone() onclick=account_chance>{"Account wechseln"}</button>
+                    <button class=btn_classes.clone() >{"Einzahlen"}</button>
+                    <button class=btn_classes.clone() >{"Account bearbeiten"}</button>
+                    <button class=btn_classes.clone() >{"Produkte bearbeiten"}</button>
+                    <button class=btn_classes >{"Neues Produkt"}</button>
                 </>
             }
         };
 
         html! {
-            <ybc::Tile ctx=TileCtx::Parent vertical=true>
-                <ybc::Card classes=classes!("is-child")>
-                    <ybc::CardHeader>
-                        <ybc::Title classes=classes!("card-header-title")>{self.props.mode.to_string()}</ybc::Title>
-                    </ybc::CardHeader>
-                    <ybc::CardContent>
+            <div class=classes!("tile", "is-parent", "is-vertical")>
+                <div class=classes!("card", "is-child")>
+                    <header class=classes!("card-header")>
+                        <h3 class=classes!("title", "card-header-title")>{self.props.mode.to_string()}</h3>
+                    </header>
+                    <div class=classes!("card-content")>
                         {user}
                         {buttons}
-                    </ybc::CardContent>
-                </ybc::Card>
-            </ybc::Tile>
+                    </div>
+                </div>
+            </div>
         }
     }
 }

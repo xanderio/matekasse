@@ -1,7 +1,6 @@
 use anyhow::Result;
 use common::{Product, User};
 use gloo_events::EventListener;
-use ybc::{TileCtx, TileSize};
 use yew::{prelude::*, services::fetch::FetchTask, web_sys::HtmlElement};
 
 use crate::request::{buy_product, fetch_all_products};
@@ -85,19 +84,17 @@ impl Component for ProductGrid {
     fn view(&self) -> Html {
         let cb = self.link.callback(Msg::ClickProduct);
         html! {
-            <>
-                <ybc::Tile vertical=true>
-                { for self.products.as_slice().chunks(3).map(|c| { html! {
-                    <ybc::Tile>
-                    {for c.iter().map(|p| html!{
-                        <ybc::Tile ctx=TileCtx::Parent size=TileSize::Four>
-                            <ProductCard item=p.clone() onclick=cb.clone() />
-                        </ybc::Tile>
-                    })}
-                    </ybc::Tile>
-                }})}
-                </ybc::Tile>
-            </>
+            <div class=classes!("tile", "is-vertical")>
+            { for self.products.as_slice().chunks(3).map(|c| { html! {
+                <div class=classes!("tile")>
+                {for c.iter().map(|p| html!{
+                    <div class=classes!("tile", "is-parent", "is-4")>
+                        <ProductCard item=p.clone() onclick=cb.clone() />
+                    </div>
+                })}
+                </div>
+            }})}
+            </div>
         }
     }
 }
@@ -145,13 +142,12 @@ impl Component for ProductCard {
 
     fn view(&self) -> Html {
         html! {
-            <ybc::Tile
+            <div
               ref={self.node.clone()}
-              ctx=TileCtx::Child
-              classes=classes!("box", "is-clickable", "is-unselectable")>
-                <ybc::Title>{self.props.item.name.clone()}</ybc::Title>
-                <ybc::Subtitle>{self.format_price()}</ybc::Subtitle>
-            </ybc::Tile>
+              class=classes!("tile", "is-child", "box", "is-clickable", "is-unselectable")>
+                <h3 class=classes!("title")>{self.props.item.name.clone()}</h3>
+                <h3 class=classes!("subtitle")>{self.format_price()}</h3>
+            </div>
         }
     }
 

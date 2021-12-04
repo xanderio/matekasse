@@ -1,11 +1,11 @@
 use std::{fmt::Display, panic};
 
 use common::User;
-use ybc::{TileCtx, TileSize};
 use yew::prelude::*;
 
 mod agents;
 mod menu;
+mod modal;
 mod product;
 mod request;
 mod user;
@@ -76,21 +76,21 @@ impl Component for App {
         html! {
             <>
                 <div class=classes!("pageloader", "is-bottom-to-top", pl_active)>
-                    <ybc::Title>{"Loading"}</ybc::Title>
+                    <h3 class=classes!("titel")>{"Loading"}</h3>
                 </div>
-                <ybc::Section>
-                    <ybc::Container>
-                        <ybc::Tile ctx=TileCtx::Ancestor>
+                <section class=classes!("section")>
+                    <div class=classes!("container")>
+                        <div class=classes!("tile", "is-ancestor")>
                             <menu::Menu mode=self.mode.clone() on_action=menu_cb/>
-                            <ybc::Tile size=TileSize::Nine>
+                            <div class=classes!("tile", "is-9")>
                             {match self.mode.clone() {
                                 Mode::Product(user) => html!{<product::ProductGrid user=user on_change=product_cb/>},
                                 Mode::User => html!{<user::UserGrid on_selected=user_cb />}
                             }}
-                            </ybc::Tile>
-                        </ybc::Tile>
-                    </ybc::Container>
-                </ybc::Section>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </>
         }
     }
