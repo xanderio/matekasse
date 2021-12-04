@@ -5,7 +5,6 @@ use ybc::{TileCtx, TileSize};
 use yew::prelude::*;
 
 mod agents;
-mod inventory;
 mod menu;
 mod product;
 mod request;
