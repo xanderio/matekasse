@@ -572,6 +572,7 @@ dependencies = [
  "common",
  "console_error_panic_hook",
  "gloo-events",
+ "gloo-storage",
  "log",
  "reqwasm",
  "serde",

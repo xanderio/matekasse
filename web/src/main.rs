@@ -7,6 +7,7 @@ mod menu;
 mod modal;
 mod product;
 mod request;
+mod settings;
 mod user;
 
 pub struct App {
@@ -92,5 +93,8 @@ impl Component for App {
 fn main() {
     panic::set_hook(Box::new(console_error_panic_hook::hook));
     wasm_logger::init(wasm_logger::Config::default());
+
+    log::info!("local settings {:?}", settings::get_all());
+
     yew::start_app::<App>();
 }
