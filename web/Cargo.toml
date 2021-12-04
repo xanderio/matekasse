@@ -5,7 +5,10 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-yew = "0.18"
+yew = { git = "https://github.com/yewstack/yew", rev = "996bf5" } 
+yew-agent = { git = "https://github.com/yewstack/yew", rev = "996bf5" } 
+web-sys = { version = "0.3.55", features = ["HtmlElement", "InputEvent"]}
+reqwasm = "0.3.1"
 gloo-events = "0.1"
 console_error_panic_hook = "0.1.7"
 wasm-logger = "0.2.0"

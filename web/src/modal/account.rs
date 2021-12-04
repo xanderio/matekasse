@@ -1,12 +1,11 @@
 use common::User;
-use yew::{agent::Dispatcher, prelude::*};
+use yew::prelude::*;
+use yew_agent::{Dispatched, Dispatcher};
 
 use crate::modal::{ModalCard, ModalCloseMsg, ModalCloser};
 
 #[derive(Debug)]
 pub struct AccountEditor {
-    link: ComponentLink<Self>,
-    props: Props,
     bridge: Dispatcher<ModalCloser>,
     user: User,
 }
@@ -31,19 +30,14 @@ impl Component for AccountEditor {
 
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(ctx: &Context<Self>) -> Self {
         let bridge = ModalCloser::dispatcher();
-        let user = props.user.clone().unwrap_or_default();
+        let user = ctx.props().user.clone().unwrap_or_default();
 
-        Self {
-            link,
-            props,
-            bridge,
-            user,
-        }
+        Self { bridge, user }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Save => false,
             Msg::Abort => {
@@ -69,18 +63,9 @@ impl Component for AccountEditor {
         }
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        if self.props != props {
-            self.props = props;
-            true
-        } else {
-            false
-        }
-    }
-
-    fn view(&self) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         let id = "AccountEditor".to_string();
-        let title = if self.props.user.is_some() {
+        let title = if ctx.props().user.is_some() {
             "Account bearbeiten"
         } else {
             "Neuen Account erstellen"
@@ -93,31 +78,31 @@ impl Component for AccountEditor {
                 <label class="label">{"Name"}</label>
                 <div class="control">
                     <input
-                        name={"name"}
+                        name="name"
                         type="text"
                         class="input"
-                        value=self.user.name.clone()
-                        oninput=self.link.callback(|e: InputData| Msg::Name(e.value))/>
+                        value={self.user.name.clone()}
+                        oninput={ctx.link().callback(|e: InputEvent| Msg::Name(e.data().unwrap_or_default()))}/>
                 </div>
             </div>
             <div class="field">
                 <label class="label">{"E-Mail"}</label>
                 <div class="control">
                     <input
-                        name={"email"}
+                        name="email"
                         type="text"
                         class="input"
-                        value=self.user.email.clone()
-                        oninput=self.link.callback(|e: InputData| Msg::Email(e.value))/>
+                        value={self.user.email.clone()}
+                        oninput={ctx.link().callback(|e: InputEvent| Msg::Email(e.data().unwrap_or_default()))}/>
                 </div>
             </div>
             <div class="field">
                 <label class="label">
                     <input
-                        name={"active"}
+                        name="active"
                         type="checkbox"
-                        checked=active
-                        oninput=self.link.callback(move |_| Msg::Active(!active))
+                        checked={active}
+                        oninput={ctx.link().callback(move |_| Msg::Active(!active))}
                         />
                     {"Active"}
                 </label>
@@ -125,10 +110,10 @@ impl Component for AccountEditor {
             <div class="field">
                 <label class="label">
                     <input
-                        name={"audit"}
+                        name="audit"
                         type="checkbox"
-                        checked=audit
-                        oninput=self.link.callback(move |_| Msg::Audit(!audit))
+                        checked={audit}
+                        oninput={ctx.link().callback(move |_| Msg::Audit(!audit))}
                         />
                     {"Audit"}
                 </label>
@@ -137,16 +122,16 @@ impl Component for AccountEditor {
         };
         let footer = html! {
             <div class="buttons">
-                <button onclick=self.link.callback(|_| Msg::Save) class="button is-primary">
+                <button onclick={ctx.link().callback(|_| Msg::Save)} class="button is-primary">
                     {"Speichern"}
                 </button>
-                <button onclick= self.link.callback(|_| Msg::Abort) class="button is-warning">
+                <button onclick={ctx.link().callback(|_| Msg::Abort)} class="button is-warning">
                     {"Abrechnen"}
                 </button>
             </div>
         };
         html! {
-            <ModalCard id=id title=title footer=footer body=body trigger=self.props.trigger.clone()/>
+            <ModalCard {id} {title} {footer} {body} trigger={ctx.props().trigger.clone()}/>
         }
     }
 }

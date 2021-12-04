@@ -1,19 +1,17 @@
-use anyhow::Error;
+use anyhow::Result;
 use common::User;
 use gloo_events::EventListener;
-use yew::{prelude::*, services::fetch::FetchTask, web_sys::HtmlElement};
+use web_sys::HtmlElement;
+use yew::prelude::*;
 
 use crate::request::fetch_all_users;
 
 pub struct UserGrid {
-    link: ComponentLink<Self>,
-    props: Props,
-    _fetch_task: Option<FetchTask>,
     users: Vec<User>,
 }
 
 pub enum Msg {
-    FetchedUsers(Result<Vec<User>, Error>),
+    FetchedUsers(Result<Vec<User>>),
     Select(User),
 }
 
@@ -27,17 +25,13 @@ impl Component for UserGrid {
 
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let task = fetch_all_users(link.callback(Msg::FetchedUsers)).expect("unable to build task");
-        Self {
-            link,
-            props,
-            users: Vec::new(),
-            _fetch_task: Some(task),
-        }
+    fn create(ctx: &Context<Self>) -> Self {
+        ctx.link()
+            .send_future(async { Msg::FetchedUsers(fetch_all_users().await) });
+        Self { users: Vec::new() }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::FetchedUsers(Ok(users)) => {
                 self.users = users;
@@ -48,30 +42,20 @@ impl Component for UserGrid {
                 false
             }
             Msg::Select(user) => {
-                self.props.on_selected.emit(user);
+                ctx.props().on_selected.emit(user);
                 false
             }
         }
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        if self.props != props {
-            self.props = props;
-            true
-        } else {
-            false
-        }
-    }
-
-    fn view(&self) -> Html {
-        let cb = self.link.callback(Msg::Select);
+    fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
-            <div class=classes!("tile", "is-vertical")>
+            <div class="tile is-vertical">
             { for self.users.as_slice().chunks(3).map(|c| { html! {
-                <div class=classes!("tile")>
+                <div class="tile">
                 {for c.iter().map(|p| html!{
-                    <div class=classes!("tile", "is-parent", "is-4")>
-                        <UserCard item=p.clone() onclick=cb.clone() />
+                    <div class="tile is-parent is-4">
+                        <UserCard item={p.clone()} onclick={ctx.link().callback(Msg::Select)} />
                     </div>
                 })}
                 </div>
@@ -82,8 +66,6 @@ impl Component for UserGrid {
 }
 
 pub struct UserCard {
-    link: ComponentLink<Self>,
-    props: UserCardProps,
     node: NodeRef,
     onclick_listener: Option<EventListener>,
 }
@@ -99,46 +81,35 @@ impl Component for UserCard {
 
     type Properties = UserCardProps;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            props,
-            link,
             node: NodeRef::default(),
             onclick_listener: None,
         }
     }
 
-    fn update(&mut self, _msg: Self::Message) -> ShouldRender {
-        self.props.onclick.emit(self.props.item.clone());
+    fn update(&mut self, ctx: &Context<Self>, _msg: Self::Message) -> bool {
+        ctx.props().onclick.emit(ctx.props().item.clone());
         false
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        if self.props != props {
-            self.props = props;
-            true
-        } else {
-            false
-        }
-    }
-
-    fn view(&self) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
             <div
               ref={self.node.clone()}
-              class=classes!("tile", "is-child", "box", "is-clickable", "is-unselectable")>
-                <h3 class="title">{self.props.item.name.clone()}</h3>
+              class="tile is-child box is-clickable is-unselectable">
+                <h3 class="title">{ctx.props().item.name.clone()}</h3>
             </div>
         }
     }
 
-    fn rendered(&mut self, first_render: bool) {
+    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         if !first_render {
             return;
         }
 
         if let Some(element) = self.node.cast::<HtmlElement>() {
-            let cb = self.link.callback(move |_| ());
+            let cb = ctx.link().callback(move |_| ());
             let listener = EventListener::new(&element, "click", move |e| cb.emit(e.clone()));
             self.onclick_listener = Some(listener);
         }

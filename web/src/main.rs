@@ -3,7 +3,6 @@ use std::{fmt::Display, panic};
 use common::User;
 use yew::prelude::*;
 
-mod agents;
 mod menu;
 mod modal;
 mod product;
@@ -11,7 +10,6 @@ mod request;
 mod user;
 
 pub struct App {
-    link: ComponentLink<Self>,
     mode: Mode,
     loading: bool,
 }
@@ -40,16 +38,15 @@ impl Component for App {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            link,
             mode: Mode::User,
             //TODO: agent to keep this state?
             loading: false,
         }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::MenuAction(menu::Action::ChangeAccount) => {
                 self.mode = Mode::User;
@@ -62,30 +59,26 @@ impl Component for App {
         }
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
-        false
-    }
-
-    fn view(&self) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         let pl_active = if self.loading { "is-active" } else { "" };
 
-        let menu_cb = self.link.callback(Msg::MenuAction);
-        let user_cb = self.link.callback(Msg::UserSelected);
-        let product_cb = self.link.callback(Msg::UserSelected);
+        let menu_cb = ctx.link().callback(Msg::MenuAction);
+        let user_cb = ctx.link().callback(Msg::UserSelected);
+        let product_cb = ctx.link().callback(Msg::UserSelected);
 
         html! {
             <>
-                <div class=classes!("pageloader", "is-bottom-to-top", pl_active)>
-                    <h3 class=classes!("titel")>{"Loading"}</h3>
+                <div class={classes!("pageloader", "is-bottom-to-top", pl_active)}>
+                    <h3 class="titel">{"Loading"}</h3>
                 </div>
-                <section class=classes!("section")>
-                    <div class=classes!("container")>
-                        <div class=classes!("tile", "is-ancestor")>
-                            <menu::Menu mode=self.mode.clone() on_action=menu_cb/>
-                            <div class=classes!("tile", "is-9")>
+                <section class="section">
+                    <div class="container">
+                        <div class="tile is-ancestor">
+                            <menu::Menu mode={self.mode.clone()} on_action={menu_cb}/>
+                            <div class="tile is-9">
                             {match self.mode.clone() {
-                                Mode::Product(user) => html!{<product::ProductGrid user=user on_change=product_cb/>},
-                                Mode::User => html!{<user::UserGrid on_selected=user_cb />}
+                                Mode::Product(user) => html!{<product::ProductGrid {user} on_change={product_cb}/>},
+                                Mode::User => html!{<user::UserGrid on_selected={user_cb} />}
                             }}
                             </div>
                         </div>

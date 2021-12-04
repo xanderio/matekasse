@@ -1,15 +1,13 @@
 use anyhow::Result;
 use common::{Product, User};
 use gloo_events::EventListener;
-use yew::{prelude::*, services::fetch::FetchTask, web_sys::HtmlElement};
+use web_sys::HtmlElement;
+use yew::prelude::*;
 
 use crate::request::{buy_product, fetch_all_products};
 
 pub struct ProductGrid {
-    link: ComponentLink<Self>,
-    props: Props,
     products: Vec<Product>,
-    fetch_task: Option<FetchTask>,
 }
 
 pub enum Msg {
@@ -29,17 +27,15 @@ impl Component for ProductGrid {
 
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let task = fetch_all_products(link.callback(Msg::FetchedProducts)).unwrap();
+    fn create(ctx: &Context<Self>) -> Self {
+        ctx.link()
+            .send_future(async { Msg::FetchedProducts(fetch_all_products().await) });
         Self {
-            link,
-            props,
             products: Vec::new(),
-            fetch_task: Some(task),
         }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::FetchedProducts(Ok(products)) => {
                 self.products = products;
@@ -50,7 +46,7 @@ impl Component for ProductGrid {
                 false
             }
             Msg::BuyProduct(Ok(user)) => {
-                self.props.on_change.emit(user);
+                ctx.props().on_change.emit(user);
                 false
             }
             Msg::BuyProduct(Err(e)) => {
@@ -59,37 +55,24 @@ impl Component for ProductGrid {
             }
             Msg::ClickProduct(product) => {
                 log::info!("{:?}", &product);
-                self.fetch_task = Some(
-                    buy_product(
-                        &self.props.user,
-                        &product,
-                        self.link.callback(Msg::BuyProduct),
-                    )
-                    .unwrap(),
-                );
+                let user = ctx.props().user.clone();
+                ctx.link().send_future(async move {
+                    Msg::BuyProduct(buy_product(&user, &product).await)
+                });
                 false
             }
         }
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        if self.props != props {
-            self.props = props;
-            true
-        } else {
-            false
-        }
-    }
-
-    fn view(&self) -> Html {
-        let cb = self.link.callback(Msg::ClickProduct);
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let cb = ctx.link().callback(Msg::ClickProduct);
         html! {
-            <div class=classes!("tile", "is-vertical")>
+            <div class="tile is-vertical">
             { for self.products.as_slice().chunks(3).map(|c| { html! {
-                <div class=classes!("tile")>
+                <div class="tile">
                 {for c.iter().map(|p| html!{
-                    <div class=classes!("tile", "is-parent", "is-4")>
-                        <ProductCard item=p.clone() onclick=cb.clone() />
+                    <div class="tile is-parent is-4">
+                        <ProductCard item={p.clone()} onclick={cb.clone()} />
                     </div>
                 })}
                 </div>
@@ -100,8 +83,6 @@ impl Component for ProductGrid {
 }
 
 pub struct ProductCard {
-    link: ComponentLink<Self>,
-    props: ProductCardProps,
     node: NodeRef,
     onclick_listener: Option<EventListener>,
 }
@@ -117,47 +98,36 @@ impl Component for ProductCard {
 
     type Properties = ProductCardProps;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            props,
-            link,
             node: NodeRef::default(),
             onclick_listener: None,
         }
     }
 
-    fn update(&mut self, _msg: Self::Message) -> ShouldRender {
-        self.props.onclick.emit(self.props.item.clone());
+    fn update(&mut self, ctx: &Context<Self>, _msg: Self::Message) -> bool {
+        ctx.props().onclick.emit(ctx.props().item.clone());
         false
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        if self.props != props {
-            self.props = props;
-            true
-        } else {
-            false
-        }
-    }
-
-    fn view(&self) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
             <div
               ref={self.node.clone()}
-              class=classes!("tile", "is-child", "box", "is-clickable", "is-unselectable")>
-                <h3 class=classes!("title")>{self.props.item.name.clone()}</h3>
-                <h3 class=classes!("subtitle")>{self.format_price()}</h3>
+              class="tile is-child box is-clickable is-unselectable">
+                <h3 class="title">{ctx.props().item.name.clone()}</h3>
+                <h3 class="subtitle">{Self::format_price(ctx.props().item.price)}</h3>
             </div>
         }
     }
 
-    fn rendered(&mut self, first_render: bool) {
+    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         if !first_render {
             return;
         }
 
         if let Some(element) = self.node.cast::<HtmlElement>() {
-            let cb = self.link.callback(move |_| ());
+            let cb = ctx.link().callback(move |_| ());
             let listener = EventListener::new(&element, "click", move |e| cb.emit(e.clone()));
             self.onclick_listener = Some(listener);
         }
@@ -165,7 +135,7 @@ impl Component for ProductCard {
 }
 
 impl ProductCard {
-    fn format_price(&self) -> String {
-        format!("{0:.2}€", self.props.item.price as f64 / 100.0)
+    fn format_price(price: i32) -> String {
+        format!("{0:.2}€", price as f64 / 100.0)
     }
 }

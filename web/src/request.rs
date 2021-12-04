@@ -1,51 +1,23 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use common::{Product, User};
-use yew::{
-    format::{Json, Nothing},
-    services::{
-        fetch::{FetchTask, Request, Response},
-        FetchService,
-    },
-    Callback,
-};
+use reqwasm::http::Request;
 
-pub fn fetch_all_users(cb: Callback<Result<Vec<User>>>) -> Result<FetchTask> {
-    let request = Request::get("/api/v3/users").body(Nothing)?;
+pub async fn fetch_all_users() -> Result<Vec<User>> {
+    let url = "/api/v3/users";
+    let resp = Request::get(url).send().await?;
 
-    FetchService::fetch(
-        request,
-        Callback::once(move |resp: Response<Json<Result<Vec<User>>>>| {
-            let Json(data) = resp.into_body();
-            cb.emit(data)
-        }),
-    )
+    resp.json().await.map_err(|e| anyhow!(e))
 }
 
-pub fn buy_product(
-    user: &User,
-    product: &Product,
-    cb: Callback<Result<User>>,
-) -> Result<FetchTask> {
-    let request =
-        Request::post(format!("/api/v3/users/{}/buy", user.id)).body(Ok(product.id.to_string()))?;
+pub async fn buy_product(user: &User, product: &Product) -> Result<User> {
+    let url = format!("/api/v3/users/{}/buy", user.id);
+    let resp = Request::post(&url).body(product.id).send().await?;
 
-    FetchService::fetch(
-        request,
-        Callback::once(move |resp: Response<Json<Result<User>>>| {
-            let Json(data) = resp.into_body();
-            cb.emit(data)
-        }),
-    )
+    resp.json().await.map_err(|e| anyhow!(e))
 }
 
-pub fn fetch_all_products(cb: Callback<Result<Vec<Product>>>) -> Result<FetchTask> {
-    let request = Request::get("/api/v3/products").body(Nothing)?;
-
-    FetchService::fetch(
-        request,
-        Callback::once(move |resp: Response<Json<Result<Vec<Product>>>>| {
-            let Json(data) = resp.into_body();
-            cb.emit(data)
-        }),
-    )
+pub async fn fetch_all_products() -> Result<Vec<Product>> {
+    let url = "/api/v3/products";
+    let resp = Request::get(url).send().await?;
+    resp.json().await.map_err(|e| anyhow!(e))
 }
