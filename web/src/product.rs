@@ -114,9 +114,22 @@ impl Component for ProductCard {
         html! {
             <div
               ref={self.node.clone()}
-              class="tile is-child box is-clickable is-unselectable">
-                <h3 class="title">{ctx.props().item.name.clone()}</h3>
-                <h3 class="subtitle">{Self::format_price(ctx.props().item.price)}</h3>
+              class="tile is-child card is-clickable is-unselectable">
+                <div class="card-image">
+                    <figure class="image is-4by3">
+                        <img src="https://bulma.io/images/placeholders/1280x960.png" alt="Placeholder image"/>
+                    </figure>
+                </div>
+                <div class="card-header">
+                    <div class="card-header-title is-centered">
+                        <p class="is-size-3">{ctx.props().item.name.clone()}</p>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="content">
+                        <p class="is-size-4 has-text-centered">{Self::format_price(ctx.props().item.price)}</p>
+                    </div>
+                </div>
             </div>
         }
     }
