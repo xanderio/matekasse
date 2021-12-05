@@ -1,6 +1,6 @@
 use yew::prelude::*;
 
-use crate::{modal::account::AccountEditor, Mode};
+use crate::{modal::account::AccountEditor, settings, Mode};
 
 pub struct Menu;
 
@@ -13,6 +13,7 @@ pub struct Props {
 #[derive(Debug, Clone)]
 pub enum Msg {
     Action(Action),
+    ToggleKiosk,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -34,6 +35,10 @@ impl Component for Menu {
             Msg::Action(action) => {
                 ctx.props().on_action.emit(action);
                 false
+            }
+            Msg::ToggleKiosk => {
+                settings::set_kiosk_mode(!settings::is_kiosk_mode());
+                true
             }
         }
     }
@@ -68,22 +73,44 @@ impl Component for Menu {
             }
         };
 
-        let buttons = if ctx.props().mode == Mode::User {
-            let trigger = html! {
-                    <button class={btn_classes}>{"Neuer Account"}</button>
-            };
-            html! {
-                <AccountEditor user={None} {trigger}/>
+        let is_kiosk = settings::is_kiosk_mode();
+        let mut buttons = Vec::new();
+        match ctx.props().mode {
+            Mode::User if is_kiosk => {
+                buttons.push(html! {
+                    <button class={btn_classes.clone()} onclick={ctx.link().callback(|_| Msg::ToggleKiosk)}>{"Kioskmodus verlassen"}</button>
+                });
             }
-        } else {
-            html! {
-                <>
+            Mode::User => {
+                let trigger = html! {
+                        <button class={btn_classes.clone()}>{"Neuer Account"}</button>
+                };
+                buttons.push(html! {
+                    <>
+                        <AccountEditor user={None} {trigger}/>
+                        <button class={btn_classes}
+                            onclick={ctx.link().callback(|_| Msg::ToggleKiosk)}>
+                            {"Kioskmodus aktivieren"}
+                        </button>
+                    </>
+                });
+            }
+            Mode::Product(_) => {
+                buttons.push(html!{
+                    <>
                     <button class={btn_classes.clone()} onclick={account_chance}>{"Account wechseln"}</button>
-                    <button class={btn_classes.clone()}>{"Einzahlen"}</button>
-                    <button class={btn_classes.clone()}>{"Account bearbeiten"}</button>
-                    <button class={btn_classes.clone()}>{"Produkte bearbeiten"}</button>
-                    <button class={btn_classes}>{"Neues Produkt"}</button>
-                </>
+                    </>
+                });
+                if !crate::settings::is_kiosk_mode() {
+                    buttons.push(html! {
+                            <>
+                                <button class={btn_classes.clone()}>{"Einzahlen"}</button>
+                                <button class={btn_classes.clone()}>{"Account bearbeiten"}</button>
+                                <button class={btn_classes.clone()}>{"Produkte bearbeiten"}</button>
+                                <button class={btn_classes}>{"Neues Produkt"}</button>
+                            </>
+                    });
+                }
             }
         };
 
