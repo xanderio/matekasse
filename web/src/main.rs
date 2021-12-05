@@ -9,6 +9,7 @@ mod product;
 mod request;
 mod settings;
 mod user;
+mod utils;
 
 pub struct App {
     mode: Mode,

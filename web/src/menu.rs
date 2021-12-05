@@ -1,6 +1,6 @@
 use yew::prelude::*;
 
-use crate::{modal::account::AccountEditor, settings, Mode};
+use crate::{modal::account::AccountEditor, settings, utils::Button, Mode};
 
 pub struct Menu;
 
@@ -44,7 +44,6 @@ impl Component for Menu {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let btn_classes = classes!("button", "is-fullwidth", "is-medium", "is-primary", "mb-2");
         let account_chance = ctx.link().callback(|_| Msg::Action(Action::ChangeAccount));
 
         let user = if let Mode::Product(user) = &ctx.props().mode {
@@ -78,36 +77,35 @@ impl Component for Menu {
         match ctx.props().mode {
             Mode::User if is_kiosk => {
                 buttons.push(html! {
-                    <button class={btn_classes.clone()} onclick={ctx.link().callback(|_| Msg::ToggleKiosk)}>{"Kioskmodus verlassen"}</button>
+                    <Button onclick={ctx.link().callback(|_| Msg::ToggleKiosk)}>{"Kioskmodus verlassen"}</Button>
                 });
             }
             Mode::User => {
                 let trigger = html! {
-                        <button class={btn_classes.clone()}>{"Neuer Account"}</button>
+                        <Button>{"Neuer Account"}</Button>
                 };
                 buttons.push(html! {
                     <>
                         <AccountEditor user={None} {trigger}/>
-                        <button class={btn_classes}
-                            onclick={ctx.link().callback(|_| Msg::ToggleKiosk)}>
+                        <Button onclick={ctx.link().callback(|_| Msg::ToggleKiosk)}>
                             {"Kioskmodus aktivieren"}
-                        </button>
+                        </Button>
                     </>
                 });
             }
             Mode::Product(_) => {
-                buttons.push(html!{
+                buttons.push(html! {
                     <>
-                    <button class={btn_classes.clone()} onclick={account_chance}>{"Account wechseln"}</button>
+                    <Button onclick={account_chance}>{"Account wechseln"}</Button>
                     </>
                 });
                 if !crate::settings::is_kiosk_mode() {
                     buttons.push(html! {
                             <>
-                                <button class={btn_classes.clone()}>{"Einzahlen"}</button>
-                                <button class={btn_classes.clone()}>{"Account bearbeiten"}</button>
-                                <button class={btn_classes.clone()}>{"Produkte bearbeiten"}</button>
-                                <button class={btn_classes}>{"Neues Produkt"}</button>
+                                <Button>{"Einzahlen"}</Button>
+                                <Button>{"Account bearbeiten"}</Button>
+                                <Button>{"Produkte bearbeiten"}</Button>
+                                <Button>{"Neues Produkt"}</Button>
                             </>
                     });
                 }
