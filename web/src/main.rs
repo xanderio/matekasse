@@ -74,9 +74,11 @@ impl Component for App {
                 </div>
                 <section class="section">
                     <div class="container">
-                        <div class="tile is-ancestor">
-                            <menu::Menu mode={self.mode.clone()} on_action={menu_cb}/>
-                            <div class="tile is-9">
+                        <div class="columns">
+                            <div class="column">
+                                <menu::Menu mode={self.mode.clone()} on_action={menu_cb}/>
+                            </div>
+                            <div class="column tile is-ancestor is-9">
                             {match self.mode.clone() {
                                 Mode::Product(user) => html!{<product::ProductGrid {user} on_change={product_cb}/>},
                                 Mode::User => html!{<user::UserGrid on_selected={user_cb} />}

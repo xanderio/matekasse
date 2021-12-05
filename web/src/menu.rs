@@ -88,15 +88,13 @@ impl Component for Menu {
         };
 
         html! {
-            <div class="tile is-parent is-vertical">
-                <div class="card is-child">
-                    <header class="card-header">
-                        <h3 class="title card-header-title">{ctx.props().mode.to_string()}</h3>
-                    </header>
-                    <div class="card-content">
-                        {user}
-                        {buttons}
-                    </div>
+            <div class="card">
+                <header class="card-header">
+                    <h3 class="title card-header-title">{ctx.props().mode.to_string()}</h3>
+                </header>
+                <div class="card-content">
+                    {user}
+                    {buttons}
                 </div>
             </div>
         }
