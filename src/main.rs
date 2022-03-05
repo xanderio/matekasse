@@ -1,4 +1,4 @@
-use axum::{AddExtensionLayer, Router};
+use axum::{extract::Extension, Router};
 use eyre::Result;
 use tower_http::trace::TraceLayer;
 use tracing::info;
@@ -26,8 +26,8 @@ async fn main() -> Result<()> {
 
     let app = Router::new()
         .nest("/api/v3", api_routes)
-        .layer(AddExtensionLayer::new(config.clone()))
-        .layer(AddExtensionLayer::new(db.clone()))
+        .layer(Extension(config.clone()))
+        .layer(Extension(db.clone()))
         .layer(TraceLayer::new_for_http());
 
     info!("listening on {}", config.http.listen);
