@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 use std::convert::TryInto;
 
-use sea_orm::{entity::*, ConnectionTrait};
+use sea_orm::{entity::*, TransactionTrait};
 
 use crate::{
     entity::{
@@ -56,7 +56,7 @@ async fn create(
             .avatar
             .map(Option::Some)
             .map(ActiveValue::set)
-            .unwrap_or_else(ActiveValue::unset),
+            .unwrap_or_else(ActiveValue::not_set),
         ..Default::default()
     };
 

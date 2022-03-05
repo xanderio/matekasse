@@ -54,7 +54,7 @@ pub mod product {
 
     macro_rules! unwrap_or_err {
         ($struct:ident.$field:ident) => {
-            let $field = if !$struct.$field.is_unset() {
+            let $field = if !$struct.$field.is_not_set() {
                 $struct.$field.unwrap()
             } else {
                 return Err(::eyre::eyre!("field not set: {}", stringify!()));
@@ -150,7 +150,7 @@ pub mod user {
 
     macro_rules! unwrap_or_err {
         ($struct:ident.$field:ident) => {
-            let $field = if !$struct.$field.is_unset() {
+            let $field = if !$struct.$field.is_not_set() {
                 $struct.$field.unwrap()
             } else {
                 return Err(::eyre::eyre!("field not set: {}", stringify!()));

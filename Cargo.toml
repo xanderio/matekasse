@@ -28,7 +28,7 @@ sqlx = { version = "0.5.11", features = [
 ] }
 
 [dependencies.sea-orm]
-version = "0.4"
+version = "0.6.0"
 default-features = false
 features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-chrono"]
 
