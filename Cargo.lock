@@ -683,6 +683,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9376a4f0340565ad675d11fc1419227faf5f60cd7ac9cb2e7185a471f30af833"
 
 [[package]]
+name = "mateserver"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "eyre",
+ "pretty_assertions",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "toml",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "memchr"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1232,26 +1252,6 @@ dependencies = [
  "itoa 0.4.8",
  "ryu",
  "serde",
-]
-
-[[package]]
-name = "server"
-version = "0.1.0"
-dependencies = [
- "axum",
- "chrono",
- "eyre",
- "pretty_assertions",
- "sea-orm",
- "serde",
- "serde_json",
- "sqlx",
- "thiserror",
- "tokio",
- "toml",
- "tower-http",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
