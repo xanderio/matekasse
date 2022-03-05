@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 axum = "0.4.8"
-tokio = { version = "1.14.0", features = ["full"] }
+tokio = { version = "1.17.0", features = ["full"] }
 
 chrono = { version = "0.4", features = ["serde"] }
 
