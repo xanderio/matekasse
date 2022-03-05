@@ -3,7 +3,7 @@ use std::{
     path::PathBuf,
 };
 
-use common::DefaultProduct;
+use crate::models::DefaultProduct;
 use serde::Deserialize;
 
 const CONFIG_FILENAME: &str = "config.toml";

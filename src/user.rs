@@ -7,7 +7,6 @@ use serde::Deserialize;
 
 use std::convert::TryInto;
 
-use common::{FundsTransferRequest, User, UserCreateRequest, UserEditRequest, UsersStatsResponce};
 use sea_orm::{entity::*, ConnectionTrait};
 
 use crate::{
@@ -15,6 +14,7 @@ use crate::{
         product,
         user::{self, Entity as UserModel},
     },
+    models::{FundsTransferRequest, User, UserCreateRequest, UserEditRequest, UsersStatsResponce},
     storage::Db,
     utils::{AppError, Result},
 };

@@ -21,14 +21,16 @@ tracing = "0.1.29"
 tracing-subscriber = { version = "0.3.3", features = ["env-filter"] }
 tower-http = { version = "0.2.0", features = ["trace"] }
 
-sqlx = { version = "0.5", features = ["runtime-tokio-rustls", "sqlite", "migrate"] }
-
-common = { path = "../common" }
+sqlx = { version = "0.5", features = [
+  "runtime-tokio-rustls",
+  "sqlite",
+  "migrate",
+] }
 
 [dependencies.sea-orm]
 version = "0.4"
 default-features = false
-features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-chrono"] 
+features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-chrono"]
 
 [dev-dependencies]
 pretty_assertions = "1"

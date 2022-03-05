@@ -5,6 +5,7 @@ use tracing::info;
 
 mod config;
 mod entity;
+mod models;
 mod products;
 mod server;
 mod storage;

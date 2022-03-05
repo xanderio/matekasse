@@ -1,5 +1,0 @@
-[tools]
-sass = "1.43.4"
-
-[[proxy]]
-backend = "http://localhost:3000/api/"

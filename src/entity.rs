@@ -1,7 +1,7 @@
 pub mod product {
     use std::convert::TryFrom;
 
-    use common::Product;
+    use crate::models::Product;
     use sea_orm::{entity::prelude::*, ActiveValue};
 
     #[derive(Debug, Clone, PartialEq, DeriveEntityModel)]
@@ -98,7 +98,7 @@ pub mod product {
 pub mod user {
     use std::convert::TryFrom;
 
-    use common::User;
+    use crate::models::User;
     use sea_orm::{entity::prelude::*, ActiveValue};
 
     #[derive(Debug, Clone, PartialEq, DeriveEntityModel)]

@@ -210,14 +210,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "common"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "serde",
-]
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1203,7 +1195,6 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "chrono",
- "common",
  "eyre",
  "pretty_assertions",
  "sea-orm",

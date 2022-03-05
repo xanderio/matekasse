@@ -6,12 +6,12 @@ use axum::{
 
 use std::convert::TryInto;
 
-use common::{Product, ProductCreateRequest, ProductEditRequest};
 use sea_orm::entity::*;
 
 use crate::{
     config::Config,
     entity::product::{self, Entity as ProductModel},
+    models::{Product, ProductCreateRequest, ProductEditRequest},
     storage::Db,
     utils::{AppError, Result},
 };

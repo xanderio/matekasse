@@ -1,7 +1,6 @@
 use axum::{extract::Extension, routing, Json, Router};
-use common::ServerInfo;
 
-use crate::config::Config;
+use crate::{config::Config, models::ServerInfo};
 
 pub fn router() -> Router {
     Router::new().route("/", routing::get(get))

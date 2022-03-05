@@ -1,3 +1,7 @@
 */dist/
-*/target/
+target/
 .env
+
+config.toml
+database.sqlite
+testdata.sql
