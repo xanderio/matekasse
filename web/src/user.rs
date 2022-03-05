@@ -97,8 +97,20 @@ impl Component for UserCard {
         html! {
             <div
               ref={self.node.clone()}
-              class="tile is-child box is-clickable is-unselectable">
-                <h3 class="title">{ctx.props().item.name.clone()}</h3>
+              class="tile is-child card is-clickable is-unselectable">
+                <div class="card-content">
+                    <div class="media">
+                        <figure class="media-left">
+                            <p class="image is-64x64">
+                                <img class="is-rounded" alt={format!("Avatar von {}", ctx.props().item.name.clone())}
+                                    src="https://chaos.social/system/accounts/avatars/000/015/422/original/AD8QQFNGKKJK.png"/>
+                            </p>
+                        </figure>
+                        <p class="is-size-2 has-text-centered">
+                            {ctx.props().item.name.clone()}
+                        </p>
+                    </div>
+                </div>
             </div>
         }
     }

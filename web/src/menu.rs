@@ -51,7 +51,10 @@ impl Component for Menu {
                 <div class="media">
                     <div class="media-left">
                         <figure class="image is-64x64">
-                            <img class="is-rounded" src="https://chaos.social/system/accounts/avatars/000/015/422/original/AD8QQFNGKKJK.png"/>
+                            <img
+                                class="is-rounded"
+                                alt={format!("Avatar von {}", user.name.clone())}
+                                src="https://chaos.social/system/accounts/avatars/000/015/422/original/AD8QQFNGKKJK.png"/>
                         </figure>
                     </div>
                     <div class="media-content">
