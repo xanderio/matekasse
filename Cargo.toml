@@ -9,19 +9,19 @@ edition = "2021"
 axum = "0.4.8"
 tokio = { version = "1.17.0", features = ["full"] }
 
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4.19", features = ["serde"] }
 
-toml = "0.5"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.72"
+toml = "0.5.8"
+serde = { version = "1.0.136", features = ["derive"] }
+serde_json = "1.0.79"
 
-eyre = "0.6"
+eyre = "0.6.7"
 thiserror = "1.0.30"
 tracing = "0.1.31"
 tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 tower-http = { version = "0.2.3", features = ["trace"] }
 
-sqlx = { version = "0.5", features = [
+sqlx = { version = "0.5.11", features = [
   "runtime-tokio-rustls",
   "sqlite",
   "migrate",
@@ -33,4 +33,4 @@ default-features = false
 features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-chrono"]
 
 [dev-dependencies]
-pretty_assertions = "1"
+pretty_assertions = "1.1.0"
